@@ -1,34 +1,72 @@
 import axios from 'axios';
+import { calcularRutaMaritima, obtenerClima } from './geoapifyService';
 
 // Función principal para calcular la ruta óptima
 export const calcularRutaOptima = async (params) => {
   try {
     const { startPoint, endPoint, startDate, boatModel, windyApiKey } = params;
     
-    // En una implementación real, aquí llamaríamos a la API de Windy
-    // const response = await axios.get('https://api.windy.com/map-forecast/forecast', {
-    //   params: {
-    //     lat: startPoint.lat,
-    //     lon: startPoint.lng,
-    //     apiKey: windyApiKey,
-    //     // otros parámetros...
-    //   }
-    // });
-    
-    // Para esta demo, simularemos la respuesta con datos de muestra
     console.log('Calculando ruta óptima con los siguientes parámetros:', params);
     
-    // Simulación de tiempo de respuesta de la API
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Primero obtenemos la ruta básica usando Geoapify
+    let rutaBase;
+    try {
+      const geoapifyResponse = await calcularRutaMaritima(startPoint, endPoint);
+      // Si la API devuelve una ruta, la usamos
+      if (geoapifyResponse && geoapifyResponse.features && geoapifyResponse.features.length > 0) {
+        const route = geoapifyResponse.features[0];
+        
+        // Extraer los puntos de la ruta
+        if (route.geometry && route.geometry.coordinates) {
+          rutaBase = route.geometry.coordinates.map(coord => ({
+            lng: coord[0],
+            lat: coord[1]
+          }));
+        }
+      }
+    } catch (error) {
+      console.warn('Error al obtener ruta de Geoapify, usando ruta simulada:', error);
+    }
     
-    // Generar una ruta simulada entre el punto de inicio y el punto final
-    const route = generarRutaSimulada(startPoint, endPoint);
+    // Si no se pudo obtener una ruta de Geoapify, generamos una simulada
+    if (!rutaBase) {
+      rutaBase = generarRutaSimulada(startPoint, endPoint);
+    }
     
-    // Generar información horaria simulada
-    const hourlyInfo = generarInfoHoraria(route, startDate, boatModel);
+    // Obtenemos datos de clima para cada punto de la ruta
+    const routeWithWeather = await Promise.all(
+      rutaBase.map(async (point, index) => {
+        // Para evitar demasiadas llamadas a la API, solo obtenemos clima para algunos puntos
+        if (index % 4 === 0) {
+          try {
+            const weatherData = await obtenerClima(point.lat, point.lng);
+            return {
+              ...point,
+              weatherData
+            };
+          } catch (error) {
+            console.warn(`Error al obtener clima para el punto ${index}:`, error);
+          }
+        }
+        return point;
+      })
+    );
+    
+    // Ahora obtenemos datos de la API de Windy para viento y corrientes
+    let windyData = null;
+    try {
+      // En una implementación real, llamaríamos a la API de Windy
+      const windyResponse = await axios.get(`https://api.windy.com/map-forecast/forecast/waypoints?lat=${startPoint.lat}&lon=${startPoint.lng}&apiKey=${windyApiKey}`);
+      windyData = windyResponse.data;
+    } catch (error) {
+      console.warn('Error al obtener datos de Windy, usando datos simulados:', error);
+    }
+    
+    // Generamos la información horaria
+    const hourlyInfo = generarInfoHoraria(rutaBase, startDate, boatModel, windyData);
     
     return {
-      route,
+      route: rutaBase,
       hourlyInfo
     };
   } catch (error) {
@@ -70,7 +108,7 @@ const generarRutaSimulada = (startPoint, endPoint) => {
 };
 
 // Función para generar información horaria simulada
-const generarInfoHoraria = (route, startDate, boatModel) => {
+const generarInfoHoraria = (route, startDate, boatModel, windyData = null) => {
   const hourlyInfo = [];
   const startTime = new Date(startDate);
   
@@ -102,12 +140,24 @@ const generarInfoHoraria = (route, startDate, boatModel) => {
     
     distanceCovered += segmentDistance;
     
-    // Generar datos de viento y corrientes simulados
-    const windSpeed = 5 + Math.random() * 20; // entre 5 y 25 knots
-    const windDirection = Math.floor(Math.random() * 360); // dirección aleatoria
-    const waveHeight = 0.5 + Math.random() * 2.5; // entre 0.5 y 3 metros
-    const currentSpeed = Math.random() * 2; // entre 0 y 2 knots
-    const currentDirection = Math.floor(Math.random() * 360); // dirección aleatoria
+    // Usar datos de Windy si están disponibles, de lo contrario generar simulados
+    let windSpeed, windDirection, waveHeight, currentSpeed, currentDirection;
+    
+    if (windyData && windyData.waypoints && windyData.waypoints[i]) {
+      const waypointData = windyData.waypoints[i];
+      windSpeed = waypointData.wind_speed || (5 + Math.random() * 20);
+      windDirection = waypointData.wind_direction || Math.floor(Math.random() * 360);
+      waveHeight = waypointData.wave_height || (0.5 + Math.random() * 2.5);
+      currentSpeed = waypointData.current_speed || (Math.random() * 2);
+      currentDirection = waypointData.current_direction || Math.floor(Math.random() * 360);
+    } else {
+      // Generar datos de viento y corrientes simulados
+      windSpeed = 5 + Math.random() * 20; // entre 5 y 25 knots
+      windDirection = Math.floor(Math.random() * 360); // dirección aleatoria
+      waveHeight = 0.5 + Math.random() * 2.5; // entre 0.5 y 3 metros
+      currentSpeed = Math.random() * 2; // entre 0 y 2 knots
+      currentDirection = Math.floor(Math.random() * 360); // dirección aleatoria
+    }
     
     // Calcular rumbo entre este punto y el siguiente
     const heading = calculateBearing(
