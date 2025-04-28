@@ -1,0 +1,34 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'npm'
+
+      - name: Install and Build 🔧
+        run: |
+          npm ci
+          npm run build
+        env:
+          REACT_APP_WINDY_API_KEY: ${{ secrets.REACT_APP_WINDY_API_KEY }}
+          REACT_APP_GEOAPIFY_API_KEY: ${{ secrets.REACT_APP_GEOAPIFY_API_KEY }}
+
+      - name: Deploy to GitHub Pages 🚀
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages  # El nombre de la rama donde se va a desplegar
+          folder: build     # El directorio de construcción a desplegar
+          clean: true       # Eliminar archivos que ya no existen en la rama
