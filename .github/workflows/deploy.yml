@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -18,17 +21,17 @@ jobs:
           node-version: '16'
           cache: 'npm'
 
-      - name: Install and Build 🔧
-        run: |
-          npm ci
-          npm run build
-        env:
-          REACT_APP_WINDY_API_KEY: ${{ secrets.REACT_APP_WINDY_API_KEY }}
-          REACT_APP_GEOAPIFY_API_KEY: ${{ secrets.REACT_APP_GEOAPIFY_API_KEY }}
+      - name: Install Dependencies
+        run: npm ci
 
-      - name: Deploy to GitHub Pages 🚀
+      - name: Build
+        run: npm run build
+        env:
+          REACT_APP_WINDY_API_KEY: wnHVKmdTiUcxckbS2wSXNflKgVjBTsPZ
+          REACT_APP_GEOAPIFY_API_KEY: 884ca322913f45a38cc8d3a2f47a2e83
+
+      - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          branch: gh-pages  # El nombre de la rama donde se va a desplegar
-          folder: build     # El directorio de construcción a desplegar
-          clean: true       # Eliminar archivos que ya no existen en la rama
+          folder: build
+          branch: gh-pages
