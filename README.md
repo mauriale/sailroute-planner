@@ -1,16 +1,20 @@
-# SailRoute Planner v1.2
+# SailRoute Planner v1.3
 
 Planificador de rutas náuticas optimizado para navegación a vela que considera condiciones de viento, corrientes y oleaje para calcular la ruta más eficiente entre dos puntos.
 
-## Nuevas características en v1.2
+## Nuevas características en v1.3
 
-- ✨ **Autocompletado de puertos marítimos**: Búsqueda rápida entre puertos y marinas globales
-- 🧭 **Algoritmo con curvas de Bézier**: Rutas optimizadas con trazado natural y suavizado
-- 🌊 **Mejora en efectos del viento**: Cálculos precisos de efectos sobre rendimiento y ruta
-- 🚢 **Actualización de modelos de veleros**: Reemplazo del Oceans 411 por Beneteau Oceanis Clipper 411
-- 🔒 **Seguridad de APIs**: Protección de claves API mediante servicios proxy
-- 🧮 **Transformación de coordenadas optimizada**: Corrección visual en mapas OpenSeaMap
-- 🎨 **Mejoras de contraste**: Nueva paleta de colores de mayor visibilidad
+- 🎨 **Nueva interfaz mejorada**: Diseño de tres paneles con mejor usabilidad y feedback visual
+- ⚠️ **Sistema robusto de manejo de errores**: Validación estricta de formularios y detección de problemas
+- 🌈 **Nueva paleta de colores**: Mayor contraste y accesibilidad con la siguiente paleta:
+  - Fondo: `#f7f9fb`
+  - Azul marino: `#003366`
+  - Verde agua: `#00bfae`
+  - Gris oscuro: `#222831`
+  - Amarillo suave: `#ffe066`
+- 🔄 **Feedback visual mejorado**: Indicadores de carga, mensajes de error específicos y notificaciones
+- 💾 **Exportación de rutas**: Funcionalidad para guardar rutas en formatos GPX y KML
+- 📱 **Diseño responsive**: Adaptación a diferentes tamaños de pantalla
 
 ## Características principales
 
@@ -40,49 +44,20 @@ Planificador de rutas náuticas optimizado para navegación a vela que considera
    - Consideración de vientos y corrientes en cada segmento
    - Optimización basada en los diagramas polares del barco seleccionado
 
-### Algoritmos implementados
+4. **Servicios de datos externos**
+   - Geoapify API para autocompletado de puertos marítimos
+   - Windy API para datos de viento y condiciones meteorológicas
+   - StormGlass.io para datos oceanográficos detallados
+   - NCDC para series temporales de datos históricos
 
-1. **Autocompletado inteligente**
-   - Debounce de 300ms para limitar llamadas API durante escritura
-   - Caché local para resultados frecuentes (ahorro del ~40% en peticiones)
-   - Filtrado por categorías marítimas (puertos, marinas, muelles, terminales)
+### Transformación de coordenadas
 
-2. **Cálculo de rutas óptimas con Bézier**
-   - Algoritmo base A* modificado para entornos marítimos
-   - Heurística de distancia geodésica con factor de corrección por viento
-   - Interpolación mediante curvas de Bézier para visualización suave y natural
+El sistema implementa un flujo riguroso de procesamiento para garantizar la correcta visualización de rutas:
 
-3. **Optimización de rendimiento del barco**
-   - Evaluación del VMG (Velocity Made Good) en función del ángulo respecto al viento
-   - Consideración de la performance del barco según su diagrama polar
-   - Ajuste dinámico de rutas en función de cambios en patrones de viento
-
-## Implementaciones detalladas en v1.2
-
-### 1. Autocompletado de puertos marítimos
-- Base de datos integrada de puertos principales
-- Búsqueda por nombre o ubicación
-- Visualización inmediata en el mapa al seleccionar
-
-### 2. Corrección de visualización de rutas
-- Solución al problema de desplazamiento en la proyección
-- Transformación correcta de coordenadas para OpenSeaMap
-- Mayor precisión en puntos intermedios
-
-### 3. Algoritmo mejorado con curvas de Bézier
-- Cálculo de puntos de control basados en factores náuticos
-- Interpolación suave para una visualización natural
-- Mejora en la predicción de tiempos y velocidades
-
-### 4. Actualización de modelos de veleros
-- Reemplazo del Oceans 411 por el Beneteau Oceanis Clipper 411
-- Actualización de diagramas polares completos
-- Mayor precisión en cálculos de rendimiento
-
-### 5. Protección de API Keys
-- Implementación de proxies para ocultar claves API
-- Sistema de autenticación para requests
-- Limitación de acceso por dominio
+1. **Normalización**: Estandarización de formatos de entrada ([lat, lon], [lon, lat], objetos)
+2. **Transformación**: Conversión precisa entre WGS84 (EPSG:4326) y Web Mercator (EPSG:3857)
+3. **Interpolación**: Generación de curvas suaves mediante algoritmo de Bézier cúbico
+4. **Ajuste**: Modificación de rutas considerando factores ambientales
 
 ## Instalación
 
@@ -98,6 +73,23 @@ npm install
 npm start
 ```
 
+## Configuración
+
+1. Crear un archivo `.env` en la raíz del proyecto con las siguientes variables:
+
+```
+REACT_APP_WINDY_API_KEY=your_key_here
+REACT_APP_GEOAPIFY_API_KEY=your_key_here
+REACT_APP_STORMGLASS_API_KEY=your_key_here
+REACT_APP_NCDC_TOKEN=your_token_here
+```
+
+2. Dependencias principales:
+   - React.js: Framework frontend principal
+   - Leaflet: Biblioteca de mapas interactivos
+   - proj4js: Transformación precisa de coordenadas
+   - Bootstrap: Framework CSS para interfaz responsiva
+
 ## Uso
 
 1. Accede a la aplicación en `http://localhost:3000`
@@ -105,18 +97,42 @@ npm start
 3. Configura los parámetros del barco y la fecha/hora de salida
 4. Calcula la ruta óptima y visualiza los detalles
 5. Consulta la información meteorológica y oceanográfica para la ruta
+6. Exporta la ruta en formatos GPX o KML para uso en dispositivos de navegación
 
-## Referencia de OpenSeaMap
+## Solución de problemas comunes
 
-Esta versión se beneficia de la arquitectura y funcionalidades de OpenSeaMap:
-- Visualización náutica optimizada
-- Integración con datos marítimos globales
-- Transformación correcta de coordenadas para navegación
+### Errores de conexión API
+- Verificar que las claves API en el archivo .env sean correctas y estén activas
+- Comprobar que no se hayan superado límites de consultas en las APIs externas
+- Verificar conexión a internet
+
+### Errores de cálculo de ruta
+- Asegurarse de seleccionar puertos o coordenadas válidas
+- Intentar con distancias más cortas para depurar problemas
+- Verificar que la fecha de salida sea futura para obtener datos meteorológicos
+
+### Errores de visualización del mapa
+- Limpiar caché del navegador si las capas no se cargan correctamente
+- Asegurarse de tener una conexión estable a internet
+- Probar en otro navegador si persisten los problemas
+
+## Contribuir
+
+Las contribuciones son bienvenidas. Para cambios importantes, por favor abre un issue primero para discutir lo que te gustaría cambiar.
+
+Pasos para contribuir:
+1. Haz fork del repositorio
+2. Crea una nueva rama (`git checkout -b feature/amazing-feature`)
+3. Haz commit de tus cambios (`git commit -m 'Add some amazing feature'`)
+4. Push a la rama (`git push origin feature/amazing-feature`)
+5. Abre un Pull Request
 
 ## Licencia
 
-MIT
+Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
 
 ## Contacto
 
-Para cualquier consulta o colaboración, contacta con [mauriale@gmail.com](mailto:mauriale@gmail.com)
+Mauricio Alejandro - [@mauriale](https://github.com/mauriale) - mauriale@gmail.com
+
+Enlace del proyecto: [https://github.com/mauriale/sailroute-planner](https://github.com/mauriale/sailroute-planner)
