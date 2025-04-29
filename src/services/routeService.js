@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { calcularRutaMaritima, obtenerClima } from './geoapifyService';
+import { calcularRutaMaritima } from './geoapifyService';
 
 // Constantes globales
 const EARTH_RADIUS = 6371; // Radio de la Tierra en km
