@@ -40,21 +40,31 @@ const sampleBoats = [
   {
     id: 'b001',
     make: 'Beneteau',
-    model: 'Oceanis 40.1',
+    model: 'Oceanis 411',
     year: 2022,
-    length: 40.1,
-    beam: 13.1,
-    draft: 7.2,
-    displacement: 18700,
-    sailArea: 861,
+    length: 41.1,
+    beam: 13.2,
+    draft: 7.3,
+    displacement: 19200,
+    sailArea: 880,
     category: 'sailboat',
     specs: {
-      maxSpeed: 8.5,
-      cruisingSpeed: 6.5,
-      fuelCapacity: 52,
-      waterCapacity: 100,
+      maxSpeed: 8.7,
+      cruisingSpeed: 6.7,
+      fuelCapacity: 55,
+      waterCapacity: 110,
       cabins: 3,
       berths: 6
+    },
+    polarDiagram: {
+      // Datos de rendimiento del barco según ángulo de viento y velocidad
+      // Formato: [ángulo relativo][velocidad del viento] = factor de velocidad
+      45: { 5: 0.5, 10: 0.6, 15: 0.65, 20: 0.6, 25: 0.5 },
+      60: { 5: 0.7, 10: 0.8, 15: 0.85, 20: 0.8, 25: 0.7 },
+      90: { 5: 0.9, 10: 1.0, 15: 1.1, 20: 1.05, 25: 0.95 },
+      120: { 5: 0.95, 10: 1.1, 15: 1.2, 20: 1.15, 25: 1.0 },
+      150: { 5: 0.8, 10: 0.9, 15: 1.0, 20: 1.0, 25: 0.9 },
+      180: { 5: 0.7, 10: 0.8, 15: 0.9, 20: 0.9, 25: 0.85 }
     }
   },
   {
@@ -238,3 +248,26 @@ const sampleBoats = [
     }
   }
 ];
+
+// Obtener un barco por ID
+export const getBoatById = (id) => {
+  return sampleBoats.find(boat => boat.id === id);
+};
+
+// Obtener un barco por marca y modelo
+export const getBoatByMakeModel = (make, model) => {
+  return sampleBoats.find(
+    boat => boat.make.toLowerCase() === make.toLowerCase() && 
+            boat.model.toLowerCase() === model.toLowerCase()
+  );
+};
+
+// Obtener todos los barcos disponibles
+export const getAllBoats = () => {
+  return sampleBoats;
+};
+
+// Obtener todos los veleros (filtrar por categoría sailboat)
+export const getAllSailboats = () => {
+  return sampleBoats.filter(boat => boat.category === 'sailboat');
+};
