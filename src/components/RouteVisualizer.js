@@ -6,7 +6,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { transformRouteToWebMercator, transformRouteToWgs84, calculateRouteBoundingBox } from '../utils/coordinateTransformer';
+import { transformRouteToWebMercator, transformRouteToWgs84, calculateRouteBoundingBox, bboxToLeafletBounds } from '../utils/coordinateTransformer';
 
 // Estilos del componente
 const styles = {
@@ -189,14 +189,29 @@ const RouteVisualizer = ({
   };
 
   /**
+   * Normaliza un punto de ruta a formato [lat, lon] para Leaflet
+   * @param {Array|Object} point - Punto en formato [lat, lon] o {lat, lng}
+   * @returns {Array} - Punto en formato [lat, lon] para Leaflet
+   */
+  const normalizeRoutePoint = (point) => {
+    if (Array.isArray(point) && point.length >= 2) {
+      return [point[0], point[1]]; // Asumir que está en formato [lat, lon]
+    } else if (point && typeof point === 'object' && 'lat' in point && 'lng' in point) {
+      return [point.lat, point.lng];
+    }
+    console.warn('Formato de punto inválido:', point);
+    return [0, 0]; // Valor por defecto
+  };
+
+  /**
    * Crea una polilínea Leaflet para una ruta
    * @param {Object} route - Datos de la ruta
    * @param {number} index - Índice de la ruta
    * @returns {L.Polyline} Polilínea Leaflet
    */
   const createRoutePolyline = (route, index) => {
-    // Extraer puntos de la ruta
-    const points = route.points.map(point => [point[0], point[1]]);
+    // Extraer puntos de la ruta en formato adecuado para Leaflet
+    const points = route.points.map(point => normalizeRoutePoint(point));
     
     // Determinar color de la ruta
     const color = getRouteColor(index, route.type);
@@ -262,7 +277,7 @@ const RouteVisualizer = ({
    */
   const createIsochronePolygon = (isochrone, index) => {
     // Extraer puntos de la isocrona
-    const points = isochrone.points.map(point => [point[0], point[1]]);
+    const points = isochrone.points.map(point => normalizeRoutePoint(point));
     
     // Determinar color de la isocrona
     const baseHue = 200; // Azul
@@ -454,12 +469,19 @@ const RouteVisualizer = ({
     
     // Añadir cada punto de cada ruta al bounds
     routes.forEach(route => {
-      if (route && route.points) {
+      if (route && route.points && route.points.length > 0) {
         route.points.forEach(point => {
-          bounds.extend(L.latLng(point[0], point[1]));
+          // Normalizar el punto al formato esperado por Leaflet
+          const [lat, lon] = normalizeRoutePoint(point);
+          bounds.extend(L.latLng(lat, lon));
         });
       }
     });
+    
+    // Si los bounds no son válidos, devolver un bounds predeterminado
+    if (!bounds.isValid()) {
+      return L.latLngBounds([[-90, -180], [90, 180]]);
+    }
     
     return bounds;
   };
@@ -500,14 +522,18 @@ const RouteVisualizer = ({
     
     const { name, distance, duration, startPoint, endPoint, type } = route;
     
+    // Determinar puntos de inicio y fin
+    const start = startPoint || (route.points && route.points.length > 0 ? route.points[0] : null);
+    const end = endPoint || (route.points && route.points.length > 0 ? route.points[route.points.length - 1] : null);
+    
     return `
       <div class="route-popup">
         <h3>${name || 'Ruta sin nombre'}</h3>
         <p><strong>Tipo:</strong> ${type || 'No especificado'}</p>
         <p><strong>Distancia:</strong> ${distance ? `${distance.toFixed(1)} nm` : 'No disponible'}</p>
         <p><strong>Duración estimada:</strong> ${formatDuration(duration)}</p>
-        <p><strong>Inicio:</strong> ${formatCoordinates(startPoint || route.points[0])}</p>
-        <p><strong>Fin:</strong> ${formatCoordinates(endPoint || route.points[route.points.length - 1])}</p>
+        <p><strong>Inicio:</strong> ${start ? formatCoordinates(start) : 'No disponible'}</p>
+        <p><strong>Fin:</strong> ${end ? formatCoordinates(end) : 'No disponible'}</p>
       </div>
     `;
   };
@@ -533,14 +559,21 @@ const RouteVisualizer = ({
 
   /**
    * Formatea coordenadas a formato legible
-   * @param {Array} coords - Coordenadas [lat, lon]
+   * @param {Array|Object} coords - Coordenadas [lat, lon] o {lat, lng}
    * @returns {string} Coordenadas formateadas
    */
   const formatCoordinates = (coords) => {
-    if (!coords || coords.length < 2) return 'No disponible';
+    let lat, lon;
     
-    const lat = coords[0];
-    const lon = coords[1];
+    if (Array.isArray(coords) && coords.length >= 2) {
+      lat = coords[0];
+      lon = coords[1];
+    } else if (coords && typeof coords === 'object' && 'lat' in coords && 'lng' in coords) {
+      lat = coords.lat;
+      lon = coords.lng;
+    } else {
+      return 'No disponible';
+    }
     
     const latDir = lat >= 0 ? 'N' : 'S';
     const lonDir = lon >= 0 ? 'E' : 'W';
