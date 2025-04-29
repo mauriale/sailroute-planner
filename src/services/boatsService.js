@@ -1,10 +1,7 @@
-import axios from 'axios';
-
 // Función para buscar modelos de barcos usando la API de boats.com
 export const searchBoats = async (query) => {
   try {
     // Normalmente aquí usaríamos la API real, pero para esta demo usaremos datos simulados
-    // const response = await axios.get(`https://api.boats.com/search?q=${query}`);
     // return response.data;
     
     // Simulación de respuesta de la API con datos de muestra
