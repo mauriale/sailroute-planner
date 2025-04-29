@@ -1,8 +1,5 @@
 import axios from 'axios';
 import { calcularRutaMaritima, obtenerClima } from './geoapifyService';
-import { transformRouteToWebMercator, transformRouteToWgs84 } from '../utils/coordinateTransformer';
-
-const EARTH_RADIUS = 6371; // Radio de la Tierra en km
 
 // Función principal para calcular la ruta óptima utilizando algoritmo A* mejorado
 export const calcularRutaOptima = async (params) => {
@@ -61,25 +58,6 @@ export const calcularRutaOptima = async (params) => {
     // Aplicar algoritmo A* mejorado para optimizar la ruta considerando viento y corrientes
     const rutaOptimizada = await optimizarRutaConViento(rutaBase, startDate, boatModel, windData);
     
-    // Obtenemos datos de clima para cada punto de la ruta
-    const routeWithWeather = await Promise.all(
-      rutaOptimizada.map(async (point, index) => {
-        // Para evitar demasiadas llamadas a la API, solo obtenemos clima para algunos puntos
-        if (index % 4 === 0) {
-          try {
-            const weatherData = await obtenerClima(point.lat, point.lng);
-            return {
-              ...point,
-              weatherData
-            };
-          } catch (error) {
-            console.warn(`Error al obtener clima para el punto ${index}:`, error);
-          }
-        }
-        return point;
-      })
-    );
-    
     // Generamos la información horaria
     const hourlyInfo = generarInfoHoraria(rutaOptimizada, startDate, boatModel, windData);
     
@@ -110,6 +88,9 @@ const optimizarRutaConViento = async (rutaBase, startDate, boatModel, windData) 
   // Extraer punto de inicio y destino
   const inicio = puntosIniciales[0];
   const destino = puntosIniciales[puntosIniciales.length - 1];
+  
+  // Constante EARTH_RADIUS para cálculos
+  const EARTH_RADIUS = 6371; // Radio de la Tierra en km
   
   // Configuración del algoritmo A*
   const grid = crearGrilla(inicio, destino, 50); // Crear una grilla de 50x50 puntos
@@ -562,7 +543,8 @@ const generarInfoHoraria = (route, startDate, boatModel, windyData = null) => {
 
 // Calcular distancia entre dos puntos geográficos (fórmula haversine)
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371; // Radio de la Tierra en km
+  // Usamos la constante definida anteriormente
+  const R = EARTH_RADIUS; // Radio de la Tierra en km
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   const a = 
@@ -585,7 +567,8 @@ const calculateBearing = (lat1, lon1, lat2, lon2) => {
 
 // Calcular un punto a partir de una distancia y rumbo desde otro punto
 const calcularPuntoDesdeDistanciaRumbo = (lat, lng, distanciaKm, rumboGrados) => {
-  const R = 6371; // Radio de la Tierra en km
+  // Usamos la constante definida anteriormente
+  const R = EARTH_RADIUS; // Radio de la Tierra en km
   const d = distanciaKm; // Distancia en km
   const brng = toRad(rumboGrados); // Rumbo en radianes
   
