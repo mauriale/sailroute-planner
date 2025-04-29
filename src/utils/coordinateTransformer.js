@@ -14,6 +14,10 @@ const MAX_LATITUDE = 85.0511287798; // Latitud máxima en Web Mercator (donde la
  * @returns {Array} [x, y] - Coordenadas en proyección Web Mercator
  */
 export function wgs84ToWebMercator(lat, lon) {
+  // Asegurarse de que los parámetros sean numéricos
+  lat = Number(lat);
+  lon = Number(lon);
+  
   // Limitar la latitud al rango válido para Web Mercator
   const clampedLat = Math.max(Math.min(MAX_LATITUDE, lat), -MAX_LATITUDE);
   
@@ -35,6 +39,10 @@ export function wgs84ToWebMercator(lat, lon) {
  * @returns {Array} [lat, lon] - Coordenadas en WGS84
  */
 export function webMercatorToWgs84(x, y) {
+  // Asegurarse de que los parámetros sean numéricos
+  x = Number(x);
+  y = Number(y);
+  
   const lon = (x / EARTH_RADIUS) * 180 / Math.PI;
   const lat = (2 * Math.atan(Math.exp(y / EARTH_RADIUS)) - Math.PI / 2) * 180 / Math.PI;
   
@@ -42,21 +50,47 @@ export function webMercatorToWgs84(x, y) {
 }
 
 /**
+ * Normaliza un punto geográfico a un formato estándar [lat, lon]
+ * @param {Array|Object} point - Punto en varios formatos posibles
+ * @returns {Array} - Punto normalizado en formato [lat, lon]
+ */
+export function normalizePoint(point) {
+  if (!point) return [0, 0];
+  
+  // Formato {lat, lng} o {lat, lon}
+  if (typeof point === 'object' && !Array.isArray(point)) {
+    if ('lat' in point && ('lng' in point || 'lon' in point)) {
+      const lon = 'lng' in point ? point.lng : point.lon;
+      return [Number(point.lat), Number(lon)];
+    }
+  }
+  
+  // Formato [lat, lon]
+  if (Array.isArray(point) && point.length >= 2) {
+    return [Number(point[0]), Number(point[1])];
+  }
+  
+  // Formato [lon, lat] (GeoJSON)
+  if (Array.isArray(point) && point.length >= 2 && typeof point[0] === 'number' && Math.abs(point[0]) > 90) {
+    // Si el primer valor es mayor a 90, probablemente es longitud (formato GeoJSON)
+    return [Number(point[1]), Number(point[0])];
+  }
+  
+  console.warn('Formato de punto no reconocido:', point);
+  return [0, 0];
+}
+
+/**
  * Transforma una ruta completa de WGS84 a Web Mercator
- * @param {Array} route - Array de puntos [lat, lon]
+ * @param {Array} route - Array de puntos en formato variado
  * @returns {Array} - Array de puntos transformados [x, y]
  */
 export function transformRouteToWebMercator(route) {
   if (!route || !Array.isArray(route)) return [];
+  
   return route.map(point => {
-    // Verificar el formato del punto
-    if (Array.isArray(point) && point.length >= 2) {
-      return wgs84ToWebMercator(point[0], point[1]);
-    } else if (point && typeof point === 'object' && 'lat' in point && 'lng' in point) {
-      return wgs84ToWebMercator(point.lat, point.lng);
-    }
-    // Si no tiene el formato esperado, retornar punto nulo
-    return [0, 0];
+    const [lat, lon] = normalizePoint(point);
+    return wgs84ToWebMercator(lat, lon);
   });
 }
 
@@ -67,8 +101,8 @@ export function transformRouteToWebMercator(route) {
  */
 export function transformRouteToWgs84(route) {
   if (!route || !Array.isArray(route)) return [];
+  
   return route.map(point => {
-    // Verificar el formato del punto
     if (Array.isArray(point) && point.length >= 2) {
       return webMercatorToWgs84(point[0], point[1]);
     }
@@ -79,7 +113,7 @@ export function transformRouteToWgs84(route) {
 
 /**
  * Calcula el bounding box de una ruta para ajuste de zoom
- * @param {Array} route - Array de puntos [lat, lon] o [{lat, lng}]
+ * @param {Array} route - Array de puntos en formato variado
  * @returns {Object} - Bounding box {minLat, minLon, maxLat, maxLon}
  */
 export function calculateRouteBoundingBox(route) {
@@ -100,18 +134,7 @@ export function calculateRouteBoundingBox(route) {
   };
 
   route.forEach(point => {
-    let lat, lon;
-    
-    // Determinar formato del punto
-    if (Array.isArray(point) && point.length >= 2) {
-      lat = point[0];
-      lon = point[1];
-    } else if (point && typeof point === 'object' && 'lat' in point && 'lng' in point) {
-      lat = point.lat;
-      lon = point.lng;
-    } else {
-      return; // Saltar este punto si no tiene formato válido
-    }
+    const [lat, lon] = normalizePoint(point);
     
     bbox.minLat = Math.min(bbox.minLat, lat);
     bbox.minLon = Math.min(bbox.minLon, lon);
@@ -141,4 +164,77 @@ export function bboxToLeafletBounds(bbox) {
     [bbox.minLat, bbox.minLon], // Esquina suroeste
     [bbox.maxLat, bbox.maxLon]  // Esquina noreste
   ];
+}
+
+/**
+ * Verifica si un punto está en formato GeoJSON (lon, lat) y lo convierte a (lat, lon)
+ * @param {Array} point - Punto a verificar y posiblemente convertir
+ * @returns {Array} - Punto en formato [lat, lon]
+ */
+export function ensureLatLonOrder(point) {
+  if (!Array.isArray(point) || point.length < 2) return point;
+  
+  // Si el primer valor parece ser longitud (>90), invertir el orden
+  if (Math.abs(point[0]) > 90 && Math.abs(point[1]) <= 90) {
+    return [point[1], point[0]];
+  }
+  
+  return point;
+}
+
+/**
+ * Detecta el formato de coordenadas en una ruta
+ * @param {Array} route - Ruta a analizar
+ * @returns {string} - Formato detectado: "latlon", "lonlat", "mixed", "objects" o "unknown"
+ */
+export function detectRouteFormat(route) {
+  if (!route || !Array.isArray(route) || route.length === 0) {
+    return "unknown";
+  }
+  
+  let latLonCount = 0;
+  let lonLatCount = 0;
+  let objectCount = 0;
+  
+  for (const point of route.slice(0, 10)) { // Analizar hasta 10 puntos para eficiencia
+    if (typeof point === 'object' && !Array.isArray(point)) {
+      if ('lat' in point && ('lng' in point || 'lon' in point)) {
+        objectCount++;
+        continue;
+      }
+    }
+    
+    if (Array.isArray(point) && point.length >= 2) {
+      // Heurística: Si el primer valor tiene magnitud > 90, probablemente es longitud
+      if (Math.abs(point[0]) > 90 && Math.abs(point[1]) <= 90) {
+        lonLatCount++;
+      } else if (Math.abs(point[0]) <= 90 && Math.abs(point[1]) > 90) {
+        latLonCount++;
+      }
+    }
+  }
+  
+  // Determinar formato predominante
+  if (objectCount > Math.max(latLonCount, lonLatCount)) {
+    return "objects";
+  } else if (latLonCount > lonLatCount && lonLatCount === 0) {
+    return "latlon";
+  } else if (lonLatCount > latLonCount && latLonCount === 0) {
+    return "lonlat";
+  } else if (latLonCount > 0 && lonLatCount > 0) {
+    return "mixed";
+  }
+  
+  return "unknown";
+}
+
+/**
+ * Normaliza una ruta completa a formato [lat, lon]
+ * @param {Array} route - Ruta con puntos en diversos formatos
+ * @returns {Array} - Ruta normalizada con puntos [lat, lon]
+ */
+export function normalizeRoute(route) {
+  if (!route || !Array.isArray(route)) return [];
+  
+  return route.map(point => normalizePoint(point));
 }
