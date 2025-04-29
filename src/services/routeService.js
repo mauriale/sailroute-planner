@@ -1,6 +1,9 @@
 import axios from 'axios';
 import { calcularRutaMaritima, obtenerClima } from './geoapifyService';
 
+// Constantes globales
+const EARTH_RADIUS = 6371; // Radio de la Tierra en km
+
 // Función principal para calcular la ruta óptima utilizando algoritmo A* mejorado
 export const calcularRutaOptima = async (params) => {
   try {
@@ -88,9 +91,6 @@ const optimizarRutaConViento = async (rutaBase, startDate, boatModel, windData) 
   // Extraer punto de inicio y destino
   const inicio = puntosIniciales[0];
   const destino = puntosIniciales[puntosIniciales.length - 1];
-  
-  // Constante EARTH_RADIUS para cálculos
-  const EARTH_RADIUS = 6371; // Radio de la Tierra en km
   
   // Configuración del algoritmo A*
   const grid = crearGrilla(inicio, destino, 50); // Crear una grilla de 50x50 puntos
@@ -543,8 +543,6 @@ const generarInfoHoraria = (route, startDate, boatModel, windyData = null) => {
 
 // Calcular distancia entre dos puntos geográficos (fórmula haversine)
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  // Usamos la constante definida anteriormente
-  const R = EARTH_RADIUS; // Radio de la Tierra en km
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   const a = 
@@ -552,7 +550,7 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * 
     Math.sin(dLon/2) * Math.sin(dLon/2); 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-  const d = R * c; // Distancia en km
+  const d = EARTH_RADIUS * c; // Distancia en km
   return d;
 };
 
@@ -567,8 +565,6 @@ const calculateBearing = (lat1, lon1, lat2, lon2) => {
 
 // Calcular un punto a partir de una distancia y rumbo desde otro punto
 const calcularPuntoDesdeDistanciaRumbo = (lat, lng, distanciaKm, rumboGrados) => {
-  // Usamos la constante definida anteriormente
-  const R = EARTH_RADIUS; // Radio de la Tierra en km
   const d = distanciaKm; // Distancia en km
   const brng = toRad(rumboGrados); // Rumbo en radianes
   
@@ -576,13 +572,13 @@ const calcularPuntoDesdeDistanciaRumbo = (lat, lng, distanciaKm, rumboGrados) =>
   const lon1 = toRad(lng);
   
   const lat2 = Math.asin(
-    Math.sin(lat1) * Math.cos(d/R) + 
-    Math.cos(lat1) * Math.sin(d/R) * Math.cos(brng)
+    Math.sin(lat1) * Math.cos(d/EARTH_RADIUS) + 
+    Math.cos(lat1) * Math.sin(d/EARTH_RADIUS) * Math.cos(brng)
   );
   
   const lon2 = lon1 + Math.atan2(
-    Math.sin(brng) * Math.sin(d/R) * Math.cos(lat1),
-    Math.cos(d/R) - Math.sin(lat1) * Math.sin(lat2)
+    Math.sin(brng) * Math.sin(d/EARTH_RADIUS) * Math.cos(lat1),
+    Math.cos(d/EARTH_RADIUS) - Math.sin(lat1) * Math.sin(lat2)
   );
   
   return {
