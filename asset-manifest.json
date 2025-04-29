@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/sailroute-planner/static/css/main.a0a9817d.css",
-    "main.js": "/sailroute-planner/static/js/main.8e484b97.js",
+    "main.css": "/sailroute-planner/static/css/main.dcf13b72.css",
+    "main.js": "/sailroute-planner/static/js/main.bdb04d3a.js",
     "static/js/453.bbe6509a.chunk.js": "/sailroute-planner/static/js/453.bbe6509a.chunk.js",
     "index.html": "/sailroute-planner/index.html",
-    "main.a0a9817d.css.map": "/sailroute-planner/static/css/main.a0a9817d.css.map",
-    "main.8e484b97.js.map": "/sailroute-planner/static/js/main.8e484b97.js.map",
+    "main.dcf13b72.css.map": "/sailroute-planner/static/css/main.dcf13b72.css.map",
+    "main.bdb04d3a.js.map": "/sailroute-planner/static/js/main.bdb04d3a.js.map",
     "453.bbe6509a.chunk.js.map": "/sailroute-planner/static/js/453.bbe6509a.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.a0a9817d.css",
-    "static/js/main.8e484b97.js"
+    "static/css/main.dcf13b72.css",
+    "static/js/main.bdb04d3a.js"
   ]
 }
