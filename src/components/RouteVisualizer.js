@@ -6,7 +6,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { transformRouteToWebMercator, transformRouteToWgs84, calculateRouteBoundingBox, bboxToLeafletBounds } from '../utils/coordinateTransformer';
+import { 
+  transformRouteToWebMercator, 
+  transformRouteToWgs84, 
+  calculateRouteBoundingBox, 
+  bboxToLeafletBounds,
+  normalizePoint,
+  normalizeRoute,
+  detectRouteFormat
+} from '../utils/coordinateTransformer';
 
 // Estilos del componente
 const styles = {
@@ -43,6 +51,17 @@ const styles = {
     zIndex: 1000,
     maxWidth: '300px',
   },
+  debugInfo: {
+    position: 'absolute',
+    bottom: '10px',
+    right: '10px',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    padding: '5px',
+    borderRadius: '4px',
+    fontSize: '10px',
+    maxWidth: '300px',
+    zIndex: 999,
+  }
 };
 
 /**
@@ -54,7 +73,8 @@ const RouteVisualizer = ({
   isochrones = [], 
   initialViewport = { center: [0, 0], zoom: 2 },
   onRouteClick = null,
-  showControls = true
+  showControls = true,
+  debugMode = false
 }) => {
   // Referencias y estado
   const mapRef = useRef(null);
@@ -63,6 +83,7 @@ const RouteVisualizer = ({
   const isochroneLayersRef = useRef([]);
   const weatherLayerRef = useRef(null);
   const [selectedRoute, setSelectedRoute] = useState(null);
+  const [debugInfo, setDebugInfo] = useState(null);
   const [visibleLayers, setVisibleLayers] = useState({
     routes: true,
     isochrones: true,
@@ -162,6 +183,14 @@ const RouteVisualizer = ({
     });
     routeLayersRef.current = {};
     
+    // Actualizar información de depuración
+    if (debugMode) {
+      const routeFormats = routes.map((route, index) => {
+        return `Ruta ${index}: ${detectRouteFormat(route.points || [])}`;
+      });
+      setDebugInfo(routeFormats.join('\n'));
+    }
+    
     // Añadir nuevas rutas
     routes.forEach((route, index) => {
       if (!route || !route.points || route.points.length < 2) return;
@@ -179,7 +208,7 @@ const RouteVisualizer = ({
     });
     
     // Ajustar vista del mapa si hay rutas
-    if (routes.length > 0 && routes[0].points.length > 0) {
+    if (routes.length > 0 && routes[0].points && routes[0].points.length > 0) {
       // Calcular bounding box de todas las rutas combinadas
       const bounds = calculateCombinedRouteBounds(routes);
       
@@ -189,29 +218,14 @@ const RouteVisualizer = ({
   };
 
   /**
-   * Normaliza un punto de ruta a formato [lat, lon] para Leaflet
-   * @param {Array|Object} point - Punto en formato [lat, lon] o {lat, lng}
-   * @returns {Array} - Punto en formato [lat, lon] para Leaflet
-   */
-  const normalizeRoutePoint = (point) => {
-    if (Array.isArray(point) && point.length >= 2) {
-      return [point[0], point[1]]; // Asumir que está en formato [lat, lon]
-    } else if (point && typeof point === 'object' && 'lat' in point && 'lng' in point) {
-      return [point.lat, point.lng];
-    }
-    console.warn('Formato de punto inválido:', point);
-    return [0, 0]; // Valor por defecto
-  };
-
-  /**
    * Crea una polilínea Leaflet para una ruta
    * @param {Object} route - Datos de la ruta
    * @param {number} index - Índice de la ruta
    * @returns {L.Polyline} Polilínea Leaflet
    */
   const createRoutePolyline = (route, index) => {
-    // Extraer puntos de la ruta en formato adecuado para Leaflet
-    const points = route.points.map(point => normalizeRoutePoint(point));
+    // Normalizar puntos de la ruta para asegurar formato [lat, lon]
+    const normalizedPoints = route.points.map(point => normalizePoint(point));
     
     // Determinar color de la ruta
     const color = getRouteColor(index, route.type);
@@ -225,7 +239,7 @@ const RouteVisualizer = ({
     };
     
     // Crear polilínea
-    const polyline = L.polyline(points, options);
+    const polyline = L.polyline(normalizedPoints, options);
     
     // Añadir popup con información
     polyline.bindPopup(() => createRoutePopup(route));
@@ -276,8 +290,8 @@ const RouteVisualizer = ({
    * @returns {L.Polygon} Polígono Leaflet
    */
   const createIsochronePolygon = (isochrone, index) => {
-    // Extraer puntos de la isocrona
-    const points = isochrone.points.map(point => normalizeRoutePoint(point));
+    // Normalizar puntos de la isocrona
+    const normalizedPoints = isochrone.points.map(point => normalizePoint(point));
     
     // Determinar color de la isocrona
     const baseHue = 200; // Azul
@@ -294,7 +308,7 @@ const RouteVisualizer = ({
     };
     
     // Crear polígono
-    const polygon = L.polygon(points, options);
+    const polygon = L.polygon(normalizedPoints, options);
     
     // Añadir popup con información
     polygon.bindPopup(`Isocrona: ${isochrone.time || index * 3} horas`);
@@ -472,7 +486,7 @@ const RouteVisualizer = ({
       if (route && route.points && route.points.length > 0) {
         route.points.forEach(point => {
           // Normalizar el punto al formato esperado por Leaflet
-          const [lat, lon] = normalizeRoutePoint(point);
+          const [lat, lon] = normalizePoint(point);
           bounds.extend(L.latLng(lat, lon));
         });
       }
@@ -559,21 +573,13 @@ const RouteVisualizer = ({
 
   /**
    * Formatea coordenadas a formato legible
-   * @param {Array|Object} coords - Coordenadas [lat, lon] o {lat, lng}
+   * @param {Array|Object} coords - Coordenadas en formato variado
    * @returns {string} Coordenadas formateadas
    */
   const formatCoordinates = (coords) => {
-    let lat, lon;
+    const [lat, lon] = normalizePoint(coords);
     
-    if (Array.isArray(coords) && coords.length >= 2) {
-      lat = coords[0];
-      lon = coords[1];
-    } else if (coords && typeof coords === 'object' && 'lat' in coords && 'lng' in coords) {
-      lat = coords.lat;
-      lon = coords.lng;
-    } else {
-      return 'No disponible';
-    }
+    if (!lat && !lon) return 'No disponible';
     
     const latDir = lat >= 0 ? 'N' : 'S';
     const lonDir = lon >= 0 ? 'E' : 'W';
@@ -651,6 +657,12 @@ const RouteVisualizer = ({
           <p><strong>Distancia:</strong> {selectedRoute.distance ? `${selectedRoute.distance.toFixed(1)} nm` : 'No disponible'}</p>
           <p><strong>Duración estimada:</strong> {formatDuration(selectedRoute.duration)}</p>
           <button onClick={() => setSelectedRoute(null)}>Cerrar</button>
+        </div>
+      )}
+      
+      {debugMode && debugInfo && (
+        <div style={styles.debugInfo}>
+          <pre>{debugInfo}</pre>
         </div>
       )}
     </div>
