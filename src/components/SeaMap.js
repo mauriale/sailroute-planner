@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import React, { useEffect, useState, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { transformRouteToWebMercator, normalizePoint, normalizeRoute, interpolateRouteWithBezier } from '../utils/coordinateTransformer';
+import LoadingIndicator from './LoadingIndicator';
 
 // Corregir el problema de los iconos de Leaflet en React
 delete L.Icon.Default.prototype._getIconUrl;
@@ -31,14 +33,10 @@ const destinationIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
-const SeaMap = ({ startPoint, endPoint, routePoints }) => {
-  const [map, setMap] = useState(null);
-  const center = startPoint || { lat: 43.6571, lng: 7.1460 }; // Saint-Laurent-du-Var por defecto
+// Componente de control de mapas para actualizar vista
+const MapController = ({ startPoint, endPoint, routePoints }) => {
+  const map = useMap();
   
-  // Opciones para dibujar la línea de la ruta
-  const polylineOptions = { color: 'blue', weight: 4, opacity: 0.7 };
-  
-  // Automáticamente ajustar el zoom para mostrar toda la ruta
   useEffect(() => {
     if (map && startPoint && endPoint) {
       const bounds = L.latLngBounds([
@@ -48,63 +46,125 @@ const SeaMap = ({ startPoint, endPoint, routePoints }) => {
       
       if (routePoints && routePoints.length > 0) {
         routePoints.forEach(point => {
-          bounds.extend([point.lat, point.lng]);
+          // Normalizar el punto al formato esperado por Leaflet
+          const [lat, lon] = normalizePoint(point);
+          bounds.extend(L.latLng(lat, lon));
         });
       }
       
       map.fitBounds(bounds, { padding: [50, 50] });
     }
   }, [map, startPoint, endPoint, routePoints]);
+  
+  return null;
+};
 
+const SeaMap = ({ startPoint, endPoint, routePoints, isLoading = false }) => {
+  const [map, setMap] = useState(null);
+  const polylineRef = useRef(null);
+  const center = startPoint || { lat: 43.6571, lng: 7.1460 }; // Saint-Laurent-du-Var por defecto
+  
+  // Preprocesar puntos de la ruta para visualización correcta
+  const processedRoutePoints = React.useMemo(() => {
+    if (!routePoints || routePoints.length < 2) return [];
+    
+    // Normalizar ruta a formato [lat, lon]
+    const normalizedRoute = normalizeRoute(routePoints);
+    
+    // Interpolar puntos para una visualización más suave
+    const interpolatedRoute = interpolateRouteWithBezier(normalizedRoute, 5);
+    
+    // Devolver la ruta procesada
+    return interpolatedRoute;
+  }, [routePoints]);
+  
+  // Opciones para dibujar la línea de la ruta
+  const polylineOptions = { 
+    color: 'blue', 
+    weight: 4, 
+    opacity: 0.7,
+    smoothFactor: 1
+  };
+  
   return (
-    <MapContainer 
-      center={[center.lat, center.lng]} 
-      zoom={8} 
-      style={{ height: '70vh', width: '100%' }}
-      whenCreated={setMap}
-    >
-      {/* Capa base de OpenStreetMap */}
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      
-      {/* Capa de OpenSeaMap para información marítima */}
-      <TileLayer
-        attribution='&copy; <a href="http://www.openseamap.org">OpenSeaMap</a> contributors'
-        url="https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"
-      />
-      
-      {/* Marcador para el punto de inicio */}
-      {startPoint && (
-        <Marker position={[startPoint.lat, startPoint.lng]} icon={boatIcon}>
-          <Popup>
-            Punto de partida<br />
-            <strong>Saint-Laurent-du-Var</strong><br />
-            Lat: {startPoint.lat.toFixed(4)}, Lng: {startPoint.lng.toFixed(4)}
-          </Popup>
-        </Marker>
-      )}
-      
-      {/* Marcador para el punto de destino */}
-      {endPoint && (
-        <Marker position={[endPoint.lat, endPoint.lng]} icon={destinationIcon}>
-          <Popup>
-            Destino<br />
-            <strong>Córcega</strong><br />
-            Lat: {endPoint.lat.toFixed(4)}, Lng: {endPoint.lng.toFixed(4)}
-          </Popup>
-        </Marker>
-      )}
-      
-      {/* Línea que muestra la ruta calculada */}
-      {routePoints && routePoints.length > 0 && (
-        <Polyline 
-          positions={routePoints.map(point => [point.lat, point.lng])} 
-          {...polylineOptions} 
+    <div style={{ position: 'relative', height: '70vh', width: '100%' }}>
+      <MapContainer 
+        center={[center.lat, center.lng]} 
+        zoom={8} 
+        style={{ height: '100%', width: '100%' }}
+        whenCreated={setMap}
+      >
+        {/* Controlador para ajustar la vista del mapa */}
+        <MapController 
+          startPoint={startPoint} 
+          endPoint={endPoint} 
+          routePoints={processedRoutePoints} 
         />
+        
+        {/* Capa base de OpenStreetMap */}
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        
+        {/* Capa de OpenSeaMap para información marítima */}
+        <TileLayer
+          attribution='&copy; <a href="http://www.openseamap.org">OpenSeaMap</a> contributors'
+          url="https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"
+        />
+        
+        {/* Marcador para el punto de inicio */}
+        {startPoint && (
+          <Marker position={[startPoint.lat, startPoint.lng]} icon={boatIcon}>
+            <Popup>
+              Punto de partida<br />
+              <strong>{startPoint.name || 'Saint-Laurent-du-Var'}</strong><br />
+              Lat: {startPoint.lat.toFixed(4)}, Lng: {startPoint.lng.toFixed(4)}
+            </Popup>
+          </Marker>
+        )}
+        
+        {/* Marcador para el punto de destino */}
+        {endPoint && (
+          <Marker position={[endPoint.lat, endPoint.lng]} icon={destinationIcon}>
+            <Popup>
+              Destino<br />
+              <strong>{endPoint.name || 'Córcega'}</strong><br />
+              Lat: {endPoint.lat.toFixed(4)}, Lng: {endPoint.lng.toFixed(4)}
+            </Popup>
+          </Marker>
+        )}
+        
+        {/* Línea que muestra la ruta calculada */}
+        {processedRoutePoints?.length > 0 && (
+          <Polyline 
+            ref={polylineRef}
+            positions={processedRoutePoints} 
+            {...polylineOptions} 
+          />
+        )}
+      </MapContainer>
+      
+      {/* Indicador de carga */}
+      {isLoading && (
+        <div 
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(255, 255, 255, 0.6)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000
+          }}
+        >
+          <LoadingIndicator variant="overlay" message="Calculando ruta..." />
+        </div>
       )}
-    </MapContainer>
+    </div>
   );
 };
 
