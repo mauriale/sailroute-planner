@@ -1,20 +1,25 @@
-# SailRoute Planner v1.3
+# SailRoute Planner v1.4
 
 Planificador de rutas náuticas optimizado para navegación a vela que considera condiciones de viento, corrientes y oleaje para calcular la ruta más eficiente entre dos puntos.
 
-## Nuevas características en v1.3
+**🌐 [Ver Aplicación Web](https://mauriale.github.io/sailroute-planner/)**
 
-- 🎨 **Nueva interfaz mejorada**: Diseño de tres paneles con mejor usabilidad y feedback visual
-- ⚠️ **Sistema robusto de manejo de errores**: Validación estricta de formularios y detección de problemas
-- 🌈 **Nueva paleta de colores**: Mayor contraste y accesibilidad con la siguiente paleta:
-  - Fondo: `#f7f9fb`
-  - Azul marino: `#003366`
-  - Verde agua: `#00bfae`
-  - Gris oscuro: `#222831`
-  - Amarillo suave: `#ffe066`
-- 🔄 **Feedback visual mejorado**: Indicadores de carga, mensajes de error específicos y notificaciones
-- 💾 **Exportación de rutas**: Funcionalidad para guardar rutas en formatos GPX y KML
-- 📱 **Diseño responsive**: Adaptación a diferentes tamaños de pantalla
+## Historial de Versiones y Puntos de Restauración
+
+| Versión | Descripción | Cómo restaurar |
+|---------|-------------|----------------|
+| v1.4 | Versión estable con geocodificación y autocompletado funcionando | `git checkout v1.4-stable` |
+| v1.3 | Nueva interfaz y paleta de colores | `git checkout c8b0cff94bf96bf7c94f51dce25666bfda9306d7` |
+| v1.2 | Integración con OpenSeaMap y mejoras de algoritmos | `git checkout 51488f0850623604fb09b7dc5c3e2d0aca1c3bd4` |
+| v1.1 | Versión inicial con funcionalidades básicas | `git checkout 9368353ec1e9d92b1612770aabc58898548282d1` |
+
+## Nuevas características en v1.4
+
+- 🚢 **Geocodificación mejorada**: Mayor precisión en la búsqueda y conversión de nombres de puertos a coordenadas
+- 🧮 **Motor de cálculo de rutas actualizado**: Algoritmo más eficiente con mejor interpolación para rutas realistas
+- 🌊 **Simulación meteorológica avanzada**: Datos meteorológicos generados con patrones más realistas
+- 🔄 **Autocompletado de puertos**: Carga automática de puertos disponibles en los campos de origen y destino
+- 🚩 **Marcadores de ruta mejorados**: Indicadores visuales claros para inicio, fin y condiciones de viento
 
 ## Características principales
 
@@ -29,7 +34,7 @@ Planificador de rutas náuticas optimizado para navegación a vela que considera
 
 ### Módulos principales
 
-1. **Interfaz de usuario (React + Bootstrap)**
+1. **Interfaz de usuario (Bootstrap)**
    - Formulario de entrada con autocompletado de puertos
    - Visualización de mapas con Leaflet
    - Paneles informativos para condiciones meteorológicas y detalles de ruta
@@ -45,87 +50,72 @@ Planificador de rutas náuticas optimizado para navegación a vela que considera
    - Optimización basada en los diagramas polares del barco seleccionado
 
 4. **Servicios de datos externos**
-   - Geoapify API para autocompletado de puertos marítimos
-   - Windy API para datos de viento y condiciones meteorológicas
-   - StormGlass.io para datos oceanográficos detallados
-   - NCDC para series temporales de datos históricos
+   - Nominatim API para geocodificación
+   - OpenSeaMap para información náutica
+   - Simulación de datos meteorológicos para demostración
 
-### Transformación de coordenadas
-
-El sistema implementa un flujo riguroso de procesamiento para garantizar la correcta visualización de rutas:
-
-1. **Normalización**: Estandarización de formatos de entrada ([lat, lon], [lon, lat], objetos)
-2. **Transformación**: Conversión precisa entre WGS84 (EPSG:4326) y Web Mercator (EPSG:3857)
-3. **Interpolación**: Generación de curvas suaves mediante algoritmo de Bézier cúbico
-4. **Ajuste**: Modificación de rutas considerando factores ambientales
-
-## Instalación
-
-```bash
-# Clonar el repositorio
-git clone https://github.com/mauriale/sailroute-planner.git
-cd sailroute-planner
-
-# Instalar dependencias
-npm install
-
-# Iniciar entorno de desarrollo
-npm start
-```
-
-## Configuración
-
-1. Crear un archivo `.env` en la raíz del proyecto con las siguientes variables:
+### Estructura del proyecto
 
 ```
-REACT_APP_WINDY_API_KEY=your_key_here
-REACT_APP_GEOAPIFY_API_KEY=your_key_here
-REACT_APP_STORMGLASS_API_KEY=your_key_here
-REACT_APP_NCDC_TOKEN=your_token_here
+sailroute-planner/
+├── js/
+│   ├── app.js            # Archivo principal de la aplicación
+│   └── routeFunctions.js # Funciones de geocodificación y cálculo de rutas
+├── index.html            # Página principal
+└── README.md             # Documentación
 ```
-
-2. Dependencias principales:
-   - React.js: Framework frontend principal
-   - Leaflet: Biblioteca de mapas interactivos
-   - proj4js: Transformación precisa de coordenadas
-   - Bootstrap: Framework CSS para interfaz responsiva
 
 ## Uso
 
-1. Accede a la aplicación en `http://localhost:3000`
-2. Busca puertos de origen y destino utilizando el autocompletado
-3. Configura los parámetros del barco y la fecha/hora de salida
-4. Calcula la ruta óptima y visualiza los detalles
-5. Consulta la información meteorológica y oceanográfica para la ruta
-6. Exporta la ruta en formatos GPX o KML para uso en dispositivos de navegación
+1. Visita [https://mauriale.github.io/sailroute-planner/](https://mauriale.github.io/sailroute-planner/)
+2. Ingresa un puerto de origen y destino usando el autocompletado
+3. Selecciona fecha y hora de salida
+4. Elige un modelo de velero de la lista
+5. Haz clic en "Calcular Ruta Óptima"
+6. Visualiza la ruta en el mapa, condiciones meteorológicas y detalles de navegación
+
+## Punto de restauración
+
+Esta versión 1.4 está marcada como un punto de restauración estable del proyecto. Si necesitas volver a este estado exacto en el futuro, puedes usar alguno de estos métodos:
+
+### Para desarrolladores con acceso al repositorio:
+
+```bash
+# Opción 1: Cambiar a la rama específica de restauración
+git checkout v1.4-stable
+
+# Opción 2: Crear una nueva rama desde este commit
+git checkout -b my-branch e7f0cad261db9296d5f87c182c987c8fa132f0b8
+
+# Opción 3: Descargar el código fuente exacto
+git clone -b v1.4-stable https://github.com/mauriale/sailroute-planner.git
+```
+
+### Para usuarios sin acceso al repositorio:
+
+1. Accede a la versión web estable: [https://mauriale.github.io/sailroute-planner/](https://mauriale.github.io/sailroute-planner/)
+2. O descarga el código fuente desde: [https://github.com/mauriale/sailroute-planner/archive/refs/heads/v1.4-stable.zip](https://github.com/mauriale/sailroute-planner/archive/refs/heads/v1.4-stable.zip)
 
 ## Solución de problemas comunes
 
-### Errores de conexión API
-- Verificar que las claves API en el archivo .env sean correctas y estén activas
-- Comprobar que no se hayan superado límites de consultas en las APIs externas
-- Verificar conexión a internet
+### La ruta no se calcula correctamente
+- Verifica que los puertos de origen y destino sean válidos
+- Asegúrate de haber seleccionado un modelo de velero
+- Comprueba que la fecha de salida sea válida
 
-### Errores de cálculo de ruta
-- Asegurarse de seleccionar puertos o coordenadas válidas
-- Intentar con distancias más cortas para depurar problemas
-- Verificar que la fecha de salida sea futura para obtener datos meteorológicos
+### Los puertos no se cargan automáticamente
+- Comprueba que el navegador admita el elemento HTML5 `<datalist>`
+- Intenta escribir al menos 3 caracteres para activar el autocompletado
+- Verifica que el puerto que buscas esté en la base de datos interna
 
 ### Errores de visualización del mapa
-- Limpiar caché del navegador si las capas no se cargan correctamente
-- Asegurarse de tener una conexión estable a internet
-- Probar en otro navegador si persisten los problemas
+- Limpia la caché del navegador si las capas no se cargan correctamente
+- Asegúrate de tener una conexión estable a internet
+- Prueba en otro navegador si persisten los problemas
 
 ## Contribuir
 
 Las contribuciones son bienvenidas. Para cambios importantes, por favor abre un issue primero para discutir lo que te gustaría cambiar.
-
-Pasos para contribuir:
-1. Haz fork del repositorio
-2. Crea una nueva rama (`git checkout -b feature/amazing-feature`)
-3. Haz commit de tus cambios (`git commit -m 'Add some amazing feature'`)
-4. Push a la rama (`git push origin feature/amazing-feature`)
-5. Abre un Pull Request
 
 ## Licencia
 
