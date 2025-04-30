@@ -30,29 +30,47 @@ Planificador de rutas náuticas optimizado para navegación a vela que considera
 - **Datos meteorológicos en tiempo real**: Integración con múltiples APIs meteorológicas
 - **Modelos polares de barco**: Cálculos basados en el rendimiento real de embarcaciones
 
-## Arquitectura y funcionamiento
+## Instalación y ejecución local
 
-### Módulos principales
+### Requisitos previos
+- Navegador web moderno (Chrome, Firefox, Edge, Safari)
+- Git (opcional, solo para clonar el repositorio)
+- Servidor web local (opcional, para desarrollo)
 
-1. **Interfaz de usuario (Bootstrap)**
-   - Formulario de entrada con autocompletado de puertos
-   - Visualización de mapas con Leaflet
-   - Paneles informativos para condiciones meteorológicas y detalles de ruta
+### Método 1: Descarga directa
+1. Descarga el código fuente como ZIP desde [https://github.com/mauriale/sailroute-planner/archive/refs/heads/v1.4-stable.zip](https://github.com/mauriale/sailroute-planner/archive/refs/heads/v1.4-stable.zip)
+2. Descomprime el archivo en tu computadora
+3. Abre el archivo `index.html` directamente en tu navegador
 
-2. **Sistema de mapas (Leaflet + OpenSeaMap)**
-   - Capas base de OpenStreetMap para geografía terrestre
-   - Capas náuticas de OpenSeaMap para información marítima
-   - Visualización de rutas mediante polylines con interpolación Bézier
+### Método 2: Clonación con Git
+1. Abre una terminal o línea de comandos
+2. Clona el repositorio:
+```bash
+git clone https://github.com/mauriale/sailroute-planner.git
+```
+3. Entra al directorio del proyecto:
+```bash
+cd sailroute-planner
+```
+4. (Opcional) Cambia a la versión estable v1.4:
+```bash
+git checkout v1.4-stable
+```
+5. Abre el archivo `index.html` en tu navegador
 
-3. **Motor de cálculo de rutas**
-   - Algoritmo A* con heurística adaptada para navegación marítima
-   - Consideración de vientos y corrientes en cada segmento
-   - Optimización basada en los diagramas polares del barco seleccionado
+### Método 3: Usando un servidor web local
+Para un desarrollo más avanzado o si experimentas problemas con las solicitudes CORS:
 
-4. **Servicios de datos externos**
-   - Nominatim API para geocodificación
-   - OpenSeaMap para información náutica
-   - Simulación de datos meteorológicos para demostración
+1. Instala Node.js y npm desde [https://nodejs.org/](https://nodejs.org/)
+2. Instala un servidor local como `http-server`:
+```bash
+npm install -g http-server
+```
+3. Navega al directorio del proyecto y ejecuta:
+```bash
+http-server -c-1
+```
+4. Abre tu navegador y accede a `http://localhost:8080`
 
 ### Estructura del proyecto
 
@@ -67,12 +85,24 @@ sailroute-planner/
 
 ## Uso
 
-1. Visita [https://mauriale.github.io/sailroute-planner/](https://mauriale.github.io/sailroute-planner/)
+1. Visita [https://mauriale.github.io/sailroute-planner/](https://mauriale.github.io/sailroute-planner/) o tu instalación local
 2. Ingresa un puerto de origen y destino usando el autocompletado
 3. Selecciona fecha y hora de salida
 4. Elige un modelo de velero de la lista
 5. Haz clic en "Calcular Ruta Óptima"
 6. Visualiza la ruta en el mapa, condiciones meteorológicas y detalles de navegación
+
+## Funcionamiento sin conexión a internet
+
+La aplicación puede funcionar parcialmente sin conexión a internet:
+- La geocodificación de puertos funcionará solo con los puertos incluidos en la base de datos interna
+- Los mapas de fondo y datos de OpenSeaMap no estarán disponibles
+- Los datos meteorológicos serán simulados localmente
+
+Para un funcionamiento completo, se recomienda tener conexión a internet para acceder a:
+- Mapas de OpenStreetMap y OpenSeaMap
+- Servicio de geocodificación para puertos no incluidos en la base de datos
+- En futuras versiones: datos meteorológicos reales (no implementado en v1.4)
 
 ## Punto de restauración
 
@@ -112,6 +142,11 @@ git clone -b v1.4-stable https://github.com/mauriale/sailroute-planner.git
 - Limpia la caché del navegador si las capas no se cargan correctamente
 - Asegúrate de tener una conexión estable a internet
 - Prueba en otro navegador si persisten los problemas
+
+### Error "Cross-Origin Request Blocked" (CORS)
+- Al abrir el archivo HTML directamente, algunos navegadores bloquean las peticiones externas
+- Solución: Utiliza un servidor web local como se describe en "Método 3" de instalación
+- Alternativa: Usa la extensión "CORS Everywhere" o similar para desarrollo local
 
 ## Contribuir
 
