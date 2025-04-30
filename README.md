@@ -1,4 +1,4 @@
-# SailRoute Planner v1.4
+# SailRoute Planner v1.5
 
 Planificador de rutas náuticas optimizado para navegación a vela que considera condiciones de viento, corrientes y oleaje para calcular la ruta más eficiente entre dos puntos.
 
@@ -8,12 +8,21 @@ Planificador de rutas náuticas optimizado para navegación a vela que considera
 
 | Versión | Descripción | Cómo restaurar |
 |---------|-------------|----------------|
+| v1.5 | Algoritmo A* optimizado e integración avanzada de corrientes marinas | `git checkout v1.5-stable` |
 | v1.4 | Versión estable con geocodificación y autocompletado funcionando | `git checkout v1.4-stable` |
 | v1.3 | Nueva interfaz y paleta de colores | `git checkout c8b0cff94bf96bf7c94f51dce25666bfda9306d7` |
 | v1.2 | Integración con OpenSeaMap y mejoras de algoritmos | `git checkout 51488f0850623604fb09b7dc5c3e2d0aca1c3bd4` |
 | v1.1 | Versión inicial con funcionalidades básicas | `git checkout 9368353ec1e9d92b1612770aabc58898548282d1` |
 
-## Nuevas características en v1.4
+## Nuevas características en v1.5
+
+- 🔍 **Algoritmo A* optimizado**: Implementación de cola de prioridad y sistema de caché para mayor eficiencia
+- 🌊 **Integración de corrientes marinas**: Cálculo preciso del efecto de corrientes en la velocidad efectiva
+- 💾 **Optimización de memoria**: Reducción de puntos innecesarios en la grilla de cálculo para mejorar rendimiento
+- 🚨 **Alertas mejoradas**: Sistema de avisos específicos sobre condiciones de viento y corrientes
+- 📊 **Visualización avanzada**: Diferentes estilos visuales según condiciones de navegación
+
+## Características principales (v1.4)
 
 - 🚢 **Geocodificación mejorada**: Mayor precisión en la búsqueda y conversión de nombres de puertos a coordenadas
 - 🧮 **Motor de cálculo de rutas actualizado**: Algoritmo más eficiente con mejor interpolación para rutas realistas
@@ -21,7 +30,7 @@ Planificador de rutas náuticas optimizado para navegación a vela que considera
 - 🔄 **Autocompletado de puertos**: Carga automática de puertos disponibles en los campos de origen y destino
 - 🚩 **Marcadores de ruta mejorados**: Indicadores visuales claros para inicio, fin y condiciones de viento
 
-## Características principales
+## Características principales (originales)
 
 - **Integración de autocompletado de puertos**: Búsqueda inteligente de puertos y marinas globales
 - **Algoritmo de cálculo de rutas avanzado**: Considera factores náuticos y condiciones meteorológicas  
@@ -38,7 +47,7 @@ Planificador de rutas náuticas optimizado para navegación a vela que considera
 - Servidor web local (opcional, para desarrollo)
 
 ### Método 1: Descarga directa
-1. Descarga el código fuente como ZIP desde [https://github.com/mauriale/sailroute-planner/archive/refs/heads/v1.4-stable.zip](https://github.com/mauriale/sailroute-planner/archive/refs/heads/v1.4-stable.zip)
+1. Descarga el código fuente como ZIP desde [https://github.com/mauriale/sailroute-planner/archive/refs/heads/main.zip](https://github.com/mauriale/sailroute-planner/archive/refs/heads/main.zip)
 2. Descomprime el archivo en tu computadora
 3. Abre el archivo `index.html` directamente en tu navegador
 
@@ -52,9 +61,9 @@ git clone https://github.com/mauriale/sailroute-planner.git
 ```bash
 cd sailroute-planner
 ```
-4. (Opcional) Cambia a la versión estable v1.4:
+4. (Opcional) Cambia a una versión estable específica:
 ```bash
-git checkout v1.4-stable
+git checkout v1.5-stable
 ```
 5. Abre el archivo `index.html` en tu navegador
 
@@ -76,11 +85,17 @@ http-server -c-1
 
 ```
 sailroute-planner/
+├── src/
+│   ├── services/
+│   │   ├── routeService.js     # Servicio de cálculo de rutas optimizado
+│   │   └── geoapifyService.js  # Servicio de geocodificación y datos marítimos
+│   ├── utils/
+│   │   └── coordinateTransformer.js # Transformación de coordenadas
 ├── js/
-│   ├── app.js            # Archivo principal de la aplicación
-│   └── routeFunctions.js # Funciones de geocodificación y cálculo de rutas
-├── index.html            # Página principal
-└── README.md             # Documentación
+│   ├── app.js              # Archivo principal de la aplicación
+│   └── routeFunctions.js   # Funciones de geocodificación y cálculo de rutas
+├── index.html              # Página principal
+└── README.md               # Documentación
 ```
 
 ## Uso
@@ -102,29 +117,29 @@ La aplicación puede funcionar parcialmente sin conexión a internet:
 Para un funcionamiento completo, se recomienda tener conexión a internet para acceder a:
 - Mapas de OpenStreetMap y OpenSeaMap
 - Servicio de geocodificación para puertos no incluidos en la base de datos
-- En futuras versiones: datos meteorológicos reales (no implementado en v1.4)
+- Datos meteorológicos y de corrientes marinas en tiempo real
 
 ## Punto de restauración
 
-Esta versión 1.4 está marcada como un punto de restauración estable del proyecto. Si necesitas volver a este estado exacto en el futuro, puedes usar alguno de estos métodos:
+Esta versión 1.5 está marcada como un punto de restauración estable del proyecto. Si necesitas volver a este estado exacto en el futuro, puedes usar alguno de estos métodos:
 
 ### Para desarrolladores con acceso al repositorio:
 
 ```bash
 # Opción 1: Cambiar a la rama específica de restauración
-git checkout v1.4-stable
+git checkout v1.5-stable
 
-# Opción 2: Crear una nueva rama desde este commit
-git checkout -b my-branch e7f0cad261db9296d5f87c182c987c8fa132f0b8
+# Opción 2: Crear una nueva rama desde el commit actual
+git checkout -b my-branch 82ea832c3764e270395c5dc66daca63e4e7e408d
 
 # Opción 3: Descargar el código fuente exacto
-git clone -b v1.4-stable https://github.com/mauriale/sailroute-planner.git
+git clone -b v1.5-stable https://github.com/mauriale/sailroute-planner.git
 ```
 
 ### Para usuarios sin acceso al repositorio:
 
 1. Accede a la versión web estable: [https://mauriale.github.io/sailroute-planner/](https://mauriale.github.io/sailroute-planner/)
-2. O descarga el código fuente desde: [https://github.com/mauriale/sailroute-planner/archive/refs/heads/v1.4-stable.zip](https://github.com/mauriale/sailroute-planner/archive/refs/heads/v1.4-stable.zip)
+2. O descarga el código fuente desde: [https://github.com/mauriale/sailroute-planner/archive/refs/heads/main.zip](https://github.com/mauriale/sailroute-planner/archive/refs/heads/main.zip)
 
 ## Solución de problemas comunes
 
