@@ -8,7 +8,7 @@ Planificador avanzado de rutas náuticas optimizado para navegación a vela que 
 
 | Versión | Descripción |
 |---------|-------------|
-| v2.1 | Integración con Meteomatics, autocompletado de puertos mejorado y detección de rutas terrestres |
+| v2.1 | Integración con múltiples proveedores meteorológicos, autocompletado de puertos mejorado y detección de rutas terrestres |
 | v2.0 | Motor de cálculo avanzado con algoritmo A* dinámico y modelo náutico preciso |
 | v1.5 | Algoritmo A* optimizado e integración de corrientes marinas |
 | v1.4 | Versión estable con geocodificación y autocompletado funcionando |
@@ -18,17 +18,17 @@ Planificador avanzado de rutas náuticas optimizado para navegación a vela que 
 
 ## Nuevas características en v2.1
 
-- 🌊 **Datos meteorológicos en tiempo real con Meteomatics**: Integración con API Meteomatics para datos precisos de viento y corrientes marinas.
+- 🌊 **Sistema de proveedores meteorológicos múltiples**: Integración con Meteomatics y OpenWeatherMap para datos meteorológicos redundantes y confiables.
 - 🛥️ **Algoritmo de evitación de rutas terrestres**: Sistema para detectar y corregir automáticamente rutas que cruzan tierra firme.
 - 🔍 **Autocompletado mejorado de puertos**: Búsqueda avanzada y visualización de puertos marítimos.
-- 📊 **Monitor de estado de APIs**: Panel para verificar el estado de las APIs utilizadas.
+- 📊 **Monitor de estado de APIs**: Panel para verificar el estado de las APIs utilizadas con selección automática del mejor proveedor disponible.
 
 ## Características principales
 
 - **Algoritmo de cálculo de rutas avanzado**: Considera factores náuticos y condiciones meteorológicas cambiantes
 - **Transformación precisa de coordenadas**: Sistema optimizado entre WGS84 y Web Mercator
 - **Visualización dinámica de rutas**: Renderizado eficiente con diferenciación según condiciones
-- **Datos meteorológicos en tiempo real**: Integración con Meteomatics API para datos precisos
+- **Datos meteorológicos en tiempo real**: Integración con múltiples APIs meteorológicas con conmutación automática entre ellas
 - **Modelos polares de barco**: Cálculos basados en el rendimiento real de embarcaciones
 - **Simulación de condiciones variables**: Predicción de vientos, corrientes y oleaje en cada punto de la ruta
 - **Segmentación de ruta**: Selección de la mejor estrategia (vela/motor) para cada segmento
@@ -57,6 +57,7 @@ npm install
 ```
 REACT_APP_METEOMATICS_USERNAME=none_inocencio_mauricio
 REACT_APP_METEOMATICS_PASSWORD=XqQNr7ty19
+REACT_APP_OPENWEATHERMAP_API_KEY=3203ba4bba4cd9ca83f0d773ec2e2c4c
 REACT_APP_GEOAPIFY_API_KEY=tu_clave_api_aqui
 REACT_APP_WINDY_API_KEY=tu_clave_api_aqui
 ```
@@ -76,7 +77,7 @@ sailroute-planner/
 │   │   │   └── Vessel.js           # Modelo de embarcación
 │   │   ├── services/
 │   │   │   ├── RoutePlanner.js     # Motor de cálculo de rutas
-│   │   │   ├── WeatherService.js   # Servicio para datos meteorológicos
+│   │   │   ├── WeatherService.js   # Gestor de servicios meteorológicos
 │   │   │   ├── OceanService.js     # Servicio para datos oceanográficos
 │   │   │   └── LandMaskService.js  # Servicio para detección de tierra
 │   │   └── components/
@@ -86,7 +87,9 @@ sailroute-planner/
 │   ├── services/
 │   │   ├── routeService.js         # Servicio actualizado con evitación de tierra
 │   │   ├── geoapifyService.js      # Servicio para geocodificación
-│   │   ├── MeteomaticsService.js   # Servicio para datos meteorológicos en tiempo real
+│   │   ├── MeteomaticsService.js   # Servicio para datos meteorológicos con Meteomatics
+│   │   ├── OpenWeatherMapService.js # Servicio para datos meteorológicos con OpenWeatherMap
+│   │   ├── WeatherService.js       # Gestor de múltiples proveedores meteorológicos
 │   │   └── LandAvoidanceService.js # Servicio para evitar rutas terrestres
 │   ├── components/
 │   │   ├── ApiStatusMonitor.js     # Monitor de estado de APIs
@@ -104,17 +107,20 @@ sailroute-planner/
 
 La nueva versión incluye características avanzadas:
 
-1. **Verificación de APIs**: Sistema para monitorear el estado de las APIs utilizadas, permitiendo identificar problemas de conexión.
+1. **Sistema de múltiples proveedores meteorológicos**: La aplicación alterna automáticamente entre Meteomatics y OpenWeatherMap según la disponibilidad de cada uno, garantizando datos confiables en todo momento.
 
-2. **Evitación de Rutas Terrestres**: El sistema detecta automáticamente cuando una ruta cruza tierra y genera waypoints para evitar estas áreas, garantizando rutas seguras.
+2. **Verificación de APIs**: Sistema para monitorear el estado de las APIs utilizadas, permitiendo identificar problemas de conexión e informa al usuario del proveedor que está siendo utilizado actualmente.
 
-3. **Datos Meteorológicos Realistas**: Integración con Meteomatics API para obtener datos precisos de viento y corrientes marinas en el Mediterráneo y otras regiones.
+3. **Evitación de Rutas Terrestres**: El sistema detecta automáticamente cuando una ruta cruza tierra y genera waypoints para evitar estas áreas, garantizando rutas seguras.
 
-4. **Búsqueda Avanzada de Puertos**: Sistema de autocompletado mejorado con caché y visualización detallada de información de puertos.
+4. **Datos Meteorológicos Realistas**: Integración con múltiples APIs meteorológicas para obtener datos precisos de viento y corrientes marinas en el Mediterráneo y otras regiones.
+
+5. **Búsqueda Avanzada de Puertos**: Sistema de autocompletado mejorado con caché y visualización detallada de información de puertos.
 
 ## Servicios externos integrados
 
-- **Datos meteorológicos**: [Meteomatics API](https://www.meteomatics.com/en/api/)
+- **Datos meteorológicos primarios**: [Meteomatics API](https://www.meteomatics.com/en/api/)
+- **Datos meteorológicos alternativos**: [OpenWeatherMap API](https://openweathermap.org/api/)
 - **Geocodificación**: [Geoapify](https://www.geoapify.com/)
 - **Cartografía base**: [OpenStreetMap](https://www.openstreetmap.org/), [Leaflet](https://leafletjs.com/)
 - **Datos de tierra/mar**: Implementación personalizada con polígonos de costa
