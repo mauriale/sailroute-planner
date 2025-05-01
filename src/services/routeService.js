@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { calcularRutaMaritima, obtenerCorrientesMarinas } from './geoapifyService';
+import { correctRouteOverLand } from './LandAvoidanceService';
 import Heap from 'heap'; // Importar heap para la lista abierta
 
 // Constantes globales
@@ -39,23 +40,36 @@ export const calcularRutaOptima = async (params) => {
       rutaBase = generarRutaSimulada(startPoint, endPoint);
     }
     
-    // Obtenemos datos de viento de la API de Windy
+    // Verificar si la ruta cruza tierra y corregirla si es necesario
+    console.log('Verificando si la ruta cruza tierra...');
+    rutaBase = correctRouteOverLand(rutaBase);
+    console.log('Ruta verificada y corregida si era necesario.');
+    
+    // Obtenemos datos de viento de la API de Windy o Meteomatics
     let windData = null;
     try {
-      const windyUrl = `https://api.windy.com/api/point-forecast/v2`;
-      
-      const windyPayload = {
-        lat: startPoint.lat,
-        lon: startPoint.lng,
-        model: 'gfs',
-        parameters: ['wind', 'waves'],
-        key: windyApiKey
-      };
-      
-      const windyResponse = await axios.post(windyUrl, windyPayload);
-      windData = windyResponse.data;
+      // Intentar primero con Meteomatics si está configurado
+      if (process.env.REACT_APP_METEOMATICS_USERNAME && process.env.REACT_APP_METEOMATICS_PASSWORD) {
+        // Código para usar Meteomatics (importar desde MeteomaticsService.js si es necesario)
+        console.log('Usando Meteomatics para datos meteorológicos');
+        // Esta parte se implementará cuando se integre completamente MeteomaticsService
+      } else {
+        // Fallback a Windy API
+        const windyUrl = `https://api.windy.com/api/point-forecast/v2`;
+        
+        const windyPayload = {
+          lat: startPoint.lat,
+          lon: startPoint.lng,
+          model: 'gfs',
+          parameters: ['wind', 'waves'],
+          key: windyApiKey
+        };
+        
+        const windyResponse = await axios.post(windyUrl, windyPayload);
+        windData = windyResponse.data;
+      }
     } catch (error) {
-      console.warn('Error al obtener datos de viento de Windy, usando datos simulados:', error);
+      console.warn('Error al obtener datos meteorológicos, usando datos simulados:', error);
     }
     
     // Obtener datos de corrientes marinas
@@ -85,6 +99,31 @@ export const calcularRutaOptima = async (params) => {
     console.error('Error al calcular la ruta óptima:', error);
     throw error;
   }
+};
+
+// Función para generar una ruta simulada entre dos puntos
+const generarRutaSimulada = (inicio, fin) => {
+  // Para simplificar, generamos una línea recta con puntos intermedios
+  const numPuntos = 5; // Número de puntos intermedios
+  
+  const ruta = [inicio];
+  
+  // Calcular incrementos para cada coordenada
+  const deltaLat = (fin.lat - inicio.lat) / (numPuntos + 1);
+  const deltaLng = (fin.lng - inicio.lng) / (numPuntos + 1);
+  
+  // Generar puntos intermedios
+  for (let i = 1; i <= numPuntos; i++) {
+    ruta.push({
+      lat: inicio.lat + deltaLat * i,
+      lng: inicio.lng + deltaLng * i
+    });
+  }
+  
+  // Añadir punto final
+  ruta.push(fin);
+  
+  return ruta;
 };
 
 // Función que implementa el algoritmo A* con heurística híbrida para optimización de ruta
@@ -269,7 +308,8 @@ const optimizarRutaConViento = async (rutaBase, startDate, boatModel, windData, 
         actual = actual.parent;
       }
       
-      return ruta;
+      // Verificar si la ruta cruza tierra y corregirla
+      return correctRouteOverLand(ruta);
     }
     
     // Añadir a lista cerrada
@@ -338,7 +378,7 @@ const optimizarRutaConViento = async (rutaBase, startDate, boatModel, windData, 
   }
   
   // Si no encontramos ruta, devolver la ruta base
-  return rutaBase;
+  return correctRouteOverLand(rutaBase);
 };
 
 // Función para generar una grilla de puntos entre inicio y destino
@@ -392,49 +432,172 @@ const generarVecinos = (punto, grid, radio) => {
   });
 };
 
-// Funciones auxiliares
-const calcularPuntoDesdeDistanciaRumbo = (lat, lng, distanciaKm, rumboGrados) => {
-  const d = distanciaKm; // Distancia en km
-  const brng = toRad(rumboGrados); // Rumbo en radianes
+// Función para generar información horaria de la ruta
+const generarInfoHoraria = (ruta, startDate, boatModel, windData, currentData) => {
+  if (!ruta || ruta.length < 2 || !startDate) {
+    return [];
+  }
   
-  const lat1 = toRad(lat);
-  const lon1 = toRad(lng);
+  const horaInfo = [];
+  let tiempoAcumulado = 0; // Tiempo acumulado en horas
+  const velocidadBase = boatModel ? boatModel.specs.cruisingSpeed * 1.852 : 11.112; // 6 nudos por defecto convertido a km/h
   
-  const lat2 = Math.asin(
-    Math.sin(lat1) * Math.cos(d/EARTH_RADIUS) + 
-    Math.cos(lat1) * Math.sin(d/EARTH_RADIUS) * Math.cos(brng)
-  );
+  // Para cada segmento de la ruta
+  for (let i = 0; i < ruta.length - 1; i++) {
+    const puntoActual = ruta[i];
+    const puntoSiguiente = ruta[i + 1];
+    
+    // Calcular distancia entre puntos
+    const distancia = calculateDistance(puntoActual.lat, puntoActual.lng, puntoSiguiente.lat, puntoSiguiente.lng);
+    
+    // Calcular tiempo para este momento
+    const momentoActual = new Date(startDate);
+    momentoActual.setTime(momentoActual.getTime() + tiempoAcumulado * 3600 * 1000);
+    
+    // Velocidad ajustada según condiciones
+    let velocidadAjustada = velocidadBase;
+    let windInfo = null;
+    let currentInfo = null;
+    
+    // Ajustar velocidad según viento
+    if (windData && windData.wind) {
+      const windIndex = Math.min(
+        Math.floor(tiempoAcumulado),
+        windData.wind.length - 1
+      );
+      
+      const windSpeed = windData.wind[windIndex]?.speed || windData.wind.speed || 0;
+      const windDirection = windData.wind[windIndex]?.direction || windData.wind.direction || 0;
+      
+      // Calcular rumbo
+      const rumbo = calculateBearing(puntoActual.lat, puntoActual.lng, puntoSiguiente.lat, puntoSiguiente.lng);
+      
+      // Ajustar velocidad
+      velocidadAjustada = calcularVelocidadAjustada(
+        velocidadBase,
+        windSpeed,
+        windDirection,
+        rumbo,
+        boatModel
+      );
+      
+      // Guardar info de viento
+      windInfo = {
+        speed: windSpeed,
+        direction: windDirection,
+        angle: Math.abs(((windDirection - rumbo) + 180) % 360 - 180)
+      };
+    }
+    
+    // Ajustar velocidad según corrientes
+    if (currentData && currentData.current) {
+      const currentSpeed = currentData.current.speed || 0;
+      const currentDirection = currentData.current.direction || 0;
+      
+      // Calcular rumbo
+      const rumbo = calculateBearing(puntoActual.lat, puntoActual.lng, puntoSiguiente.lat, puntoSiguiente.lng);
+      
+      // Ajustar velocidad
+      const currentEffect = calculateCurrentEffect(
+        velocidadBase,
+        currentSpeed,
+        currentDirection,
+        rumbo
+      );
+      
+      velocidadAjustada *= currentEffect;
+      
+      // Guardar info de corriente
+      currentInfo = {
+        speed: currentSpeed,
+        direction: currentDirection,
+        angle: Math.abs(((currentDirection - rumbo) + 180) % 360 - 180)
+      };
+    }
+    
+    // Calcular tiempo en horas = distancia / velocidad
+    const tiempoHoras = distancia / velocidadAjustada;
+    
+    // Añadir información para este segmento
+    horaInfo.push({
+      startPoint: puntoActual,
+      endPoint: puntoSiguiente,
+      startTime: new Date(momentoActual.getTime()),
+      endTime: new Date(momentoActual.getTime() + tiempoHoras * 3600 * 1000),
+      distance: distancia,
+      duration: tiempoHoras,
+      speed: velocidadAjustada / 1.852, // Convertir a nudos para mostrar
+      wind: windInfo,
+      current: currentInfo
+    });
+    
+    // Acumular tiempo
+    tiempoAcumulado += tiempoHoras;
+  }
   
-  const lon2 = lon1 + Math.atan2(
-    Math.sin(brng) * Math.sin(d/EARTH_RADIUS) * Math.cos(lat1),
-    Math.cos(d/EARTH_RADIUS) - Math.sin(lat1) * Math.sin(lat2)
-  );
-  
-  return {
-    lat: toDeg(lat2),
-    lng: toDeg(lon2)
-  };
+  return horaInfo;
 };
 
-// Calcular ajuste de velocidad basado en viento y rumbo
-const calculateSpeedAdjustment = (windSpeed, windDirection, courseHeading) => {
-  // Calcular diferencia angular entre rumbo y dirección del viento
-  const angleDiff = Math.abs(((windDirection - courseHeading) + 180) % 360 - 180);
-  
-  // Ajuste basado en la diferencia angular (simulación simplificada)
-  if (angleDiff < 45) {
-    // Viento de popa: ligero aumento
-    return 1.1 + (windSpeed / 40);
-  } else if (angleDiff < 90) {
-    // Viento de aleta: mejor rendimiento
-    return 1.2 + (windSpeed / 30);
-  } else if (angleDiff < 135) {
-    // Viento de través: buen rendimiento
-    return 1.0 + (windSpeed / 35);
-  } else {
-    // Viento de ceñida: rendimiento reducido
-    return 0.8 + (windSpeed / 50);
+// Calcular isocronas para visualización
+const calcularIsocronas = (ruta, startDate, boatModel) => {
+  // Esta es una implementación simplificada
+  if (!ruta || ruta.length < 2 || !startDate) {
+    return [];
   }
+  
+  const isocronas = [];
+  const numIsocronas = 6; // Número de isocronas a generar
+  
+  // Calcular tiempo total estimado de la ruta
+  const horaInfo = generarInfoHoraria(ruta, startDate, boatModel, null, null);
+  let tiempoTotal = 0;
+  
+  horaInfo.forEach(info => {
+    tiempoTotal += info.duration;
+  });
+  
+  // Generar isocronas a intervalos regulares
+  const intervalo = tiempoTotal / numIsocronas;
+  
+  for (let i = 1; i <= numIsocronas; i++) {
+    const tiempoIsocrona = i * intervalo;
+    const puntoIsocrona = interpolarPunto(ruta, horaInfo, tiempoIsocrona);
+    
+    if (puntoIsocrona) {
+      isocronas.push({
+        point: puntoIsocrona,
+        time: new Date(startDate.getTime() + tiempoIsocrona * 3600 * 1000)
+      });
+    }
+  }
+  
+  return isocronas;
+};
+
+// Interpolar punto en la ruta según tiempo
+const interpolarPunto = (ruta, horaInfo, tiempo) => {
+  let tiempoAcumulado = 0;
+  
+  for (let i = 0; i < horaInfo.length; i++) {
+    const info = horaInfo[i];
+    
+    // Si el tiempo está en este segmento
+    if (tiempoAcumulado + info.duration >= tiempo) {
+      // Calcular proporción del segmento
+      const proporcion = (tiempo - tiempoAcumulado) / info.duration;
+      
+      // Interpolar coordenadas
+      return {
+        lat: info.startPoint.lat + (info.endPoint.lat - info.startPoint.lat) * proporcion,
+        lng: info.startPoint.lng + (info.endPoint.lng - info.startPoint.lng) * proporcion
+      };
+    }
+    
+    tiempoAcumulado += info.duration;
+  }
+  
+  // Si no se encuentra, devolver el último punto
+  return ruta[ruta.length - 1];
 };
 
 // Calcular la velocidad ajustada según el viento y el modelo del barco
