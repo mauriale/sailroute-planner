@@ -1,4 +1,4 @@
-# SailRoute Planner v2.0
+# SailRoute Planner v2.1
 
 Planificador avanzado de rutas náuticas optimizado para navegación a vela que considera condiciones de viento, corrientes y oleaje para calcular la ruta más eficiente entre dos puntos.
 
@@ -8,6 +8,7 @@ Planificador avanzado de rutas náuticas optimizado para navegación a vela que 
 
 | Versión | Descripción |
 |---------|-------------|
+| v2.1 | Integración con Meteomatics, autocompletado de puertos mejorado y detección de rutas terrestres |
 | v2.0 | Motor de cálculo avanzado con algoritmo A* dinámico y modelo náutico preciso |
 | v1.5 | Algoritmo A* optimizado e integración de corrientes marinas |
 | v1.4 | Versión estable con geocodificación y autocompletado funcionando |
@@ -15,35 +16,24 @@ Planificador avanzado de rutas náuticas optimizado para navegación a vela que 
 | v1.2 | Integración con OpenSeaMap y mejoras de algoritmos |
 | v1.1 | Versión inicial con funcionalidades básicas |
 
-## Nuevas características en v2.0
+## Nuevas características en v2.1
 
-- 🧠 **Algoritmo A* dinámico adaptativo**: Considera factores meteorológicos y oceanográficos variables
-- 🚢 **Modelo náutico preciso**: Simulación física de embarcaciones con diagramas polares
-- 🌊 **Integración avanzada de corrientes marinas**: Cálculo preciso del efecto de corrientes en la velocidad efectiva
-- 🧭 **Navegación realista a vela**: Maniobras de virada y trasluchada según condiciones de viento
-- 🔋 **Gestión de recursos**: Estimación de consumo de combustible y autonomía
-- 🛡️ **Evaluación de seguridad**: Análisis de condiciones meteorológicas y zonas de peligro
-- 📊 **Visualización avanzada**: Indicadores por segmentos según condiciones de navegación
-- ⏱️ **Cálculo progresivo**: Visualización de resultados parciales en tiempo real
-
-## Arquitectura v2.0
-
-La nueva versión implementa una arquitectura modular con clases especializadas:
-
-- **NavigationPoint**: Representa puntos en la ruta con datos meteorológicos y náuticos
-- **Vessel**: Modelo detallado de embarcación con características físicas y de rendimiento
-- **RoutePlanner**: Motor de cálculo avanzado con algoritmo A* dinámico adaptado
+- 🌊 **Datos meteorológicos en tiempo real con Meteomatics**: Integración con API Meteomatics para datos precisos de viento y corrientes marinas.
+- 🛥️ **Algoritmo de evitación de rutas terrestres**: Sistema para detectar y corregir automáticamente rutas que cruzan tierra firme.
+- 🔍 **Autocompletado mejorado de puertos**: Búsqueda avanzada y visualización de puertos marítimos.
+- 📊 **Monitor de estado de APIs**: Panel para verificar el estado de las APIs utilizadas.
 
 ## Características principales
 
 - **Algoritmo de cálculo de rutas avanzado**: Considera factores náuticos y condiciones meteorológicas cambiantes
 - **Transformación precisa de coordenadas**: Sistema optimizado entre WGS84 y Web Mercator
 - **Visualización dinámica de rutas**: Renderizado eficiente con diferenciación según condiciones
-- **Datos meteorológicos en tiempo real**: Integración con múltiples APIs meteorológicas
+- **Datos meteorológicos en tiempo real**: Integración con Meteomatics API para datos precisos
 - **Modelos polares de barco**: Cálculos basados en el rendimiento real de embarcaciones
 - **Simulación de condiciones variables**: Predicción de vientos, corrientes y oleaje en cada punto de la ruta
 - **Segmentación de ruta**: Selección de la mejor estrategia (vela/motor) para cada segmento
 - **Cálculo adaptativo**: Equilibrio entre eficiencia computacional y precisión náutica
+- **Evitación de rutas terrestres**: Sistema inteligente para generar rutas seguras sin cruzar tierra
 
 ## Instalación y ejecución local
 
@@ -62,12 +52,20 @@ git clone https://github.com/mauriale/sailroute-planner.git
 cd sailroute-planner
 npm install
 ```
-3. Inicia el servidor de desarrollo:
+3. Configura las variables de entorno:
+   Crea un archivo `.env` en la raíz del proyecto con las siguientes variables:
+```
+REACT_APP_METEOMATICS_USERNAME=none_inocencio_mauricio
+REACT_APP_METEOMATICS_PASSWORD=XqQNr7ty19
+REACT_APP_GEOAPIFY_API_KEY=tu_clave_api_aqui
+REACT_APP_WINDY_API_KEY=tu_clave_api_aqui
+```
+4. Inicia el servidor de desarrollo:
 ```bash
 npm start
 ```
 
-### Estructura del proyecto v2.0
+## Estructura del proyecto v2.1
 
 ```
 sailroute-planner/
@@ -86,8 +84,14 @@ sailroute-planner/
 │   │       ├── WeatherOverlay.js   # Superposición de datos meteorológicos
 │   │       └── RouteStatistics.js  # Estadísticas de la ruta
 │   ├── services/
-│   │   ├── routeService.js         # Servicio original (v1.5)
-│   │   └── geoapifyService.js      # Servicio para geocodificación
+│   │   ├── routeService.js         # Servicio actualizado con evitación de tierra
+│   │   ├── geoapifyService.js      # Servicio para geocodificación
+│   │   ├── MeteomaticsService.js   # Servicio para datos meteorológicos en tiempo real
+│   │   └── LandAvoidanceService.js # Servicio para evitar rutas terrestres
+│   ├── components/
+│   │   ├── ApiStatusMonitor.js     # Monitor de estado de APIs
+│   │   ├── PortAutocomplete.js     # Componente de autocompletado mejorado
+│   │   └── ... (otros componentes)
 │   └── utils/
 │       └── coordinateTransformer.js # Transformación de coordenadas
 ├── public/
@@ -96,36 +100,24 @@ sailroute-planner/
 └── README.md                       # Documentación
 ```
 
-## Uso avanzado (v2.0)
+## Uso avanzado (v2.1)
 
-La nueva versión permite configuraciones avanzadas para la planificación de rutas:
+La nueva versión incluye características avanzadas:
 
-1. **Configuración de embarcación**:
-   - Modelo de barco (velero, motor, catamarán)
-   - Características físicas (eslora, manga, calado, desplazamiento)
-   - Rendimiento (diagrama polar, velocidad crucero, potencia motor)
-   - Límites de seguridad (viento máximo, oleaje máximo)
+1. **Verificación de APIs**: Sistema para monitorear el estado de las APIs utilizadas, permitiendo identificar problemas de conexión.
 
-2. **Configuración de ruta**:
-   - Fecha y hora de salida
-   - Preferencias de navegación (prioridad vela/motor)
-   - Velocidad óptima vs. consumo mínimo vs. tiempo mínimo
-   - Zonas a evitar o rodear
+2. **Evitación de Rutas Terrestres**: El sistema detecta automáticamente cuando una ruta cruza tierra y genera waypoints para evitar estas áreas, garantizando rutas seguras.
 
-3. **Visualización avanzada**:
-   - Codificación por colores para segmentos según condiciones
-   - Superposición de datos meteorológicos y oceanográficos
-   - Alternativas de ruta con diferentes estrategias
-   - Estadísticas detalladas por segmento
+3. **Datos Meteorológicos Realistas**: Integración con Meteomatics API para obtener datos precisos de viento y corrientes marinas en el Mediterráneo y otras regiones.
 
-## Integración con servicios externos
+4. **Búsqueda Avanzada de Puertos**: Sistema de autocompletado mejorado con caché y visualización detallada de información de puertos.
 
-La versión 2.0 está preparada para integrarse con múltiples servicios externos:
+## Servicios externos integrados
 
-- **Datos meteorológicos**: [OpenWeatherMap](https://openweathermap.org/), [Windy API](https://api.windy.com/)
-- **Datos oceanográficos**: [Copernicus Marine](https://marine.copernicus.eu/), [OSCAR](https://podaac.jpl.nasa.gov/dataset/OSCAR_L4_OC)
-- **Batimetría**: [GEBCO](https://www.gebco.net/), [EMODnet](https://emodnet.ec.europa.eu/en)
-- **Cartografía**: [OpenSeaMap](https://www.openseamap.org/), [TMS Marine Charts](https://tms-marine-charts.com/)
+- **Datos meteorológicos**: [Meteomatics API](https://www.meteomatics.com/en/api/)
+- **Geocodificación**: [Geoapify](https://www.geoapify.com/)
+- **Cartografía base**: [OpenStreetMap](https://www.openstreetmap.org/), [Leaflet](https://leafletjs.com/)
+- **Datos de tierra/mar**: Implementación personalizada con polígonos de costa
 
 ## Contribuir
 
