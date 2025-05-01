@@ -53,13 +53,10 @@ cd sailroute-planner
 npm install
 ```
 3. Configura las variables de entorno:
-   Crea un archivo `.env` en la raíz del proyecto con las siguientes variables:
+   Crea un archivo `.env` en la raíz del proyecto basado en el archivo `.env.example`.
 ```
-REACT_APP_METEOMATICS_USERNAME=none_inocencio_mauricio
-REACT_APP_METEOMATICS_PASSWORD=XqQNr7ty19
-REACT_APP_OPENWEATHERMAP_API_KEY=3203ba4bba4cd9ca83f0d773ec2e2c4c
-REACT_APP_GEOAPIFY_API_KEY=tu_clave_api_aqui
-REACT_APP_WINDY_API_KEY=tu_clave_api_aqui
+# Ver .env.example para más detalles
+# Necesitas configurar las credenciales para al menos un servicio meteorológico
 ```
 4. Inicia el servidor de desarrollo:
 ```bash
