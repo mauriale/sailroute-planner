@@ -6,6 +6,7 @@ import RouteForm from './components/RouteForm';
 import SeaMap from './components/SeaMap';
 import RouteInfo from './components/RouteInfo';
 import LoadingOverlay from './components/LoadingOverlay';
+import ApiStatusMonitor from './components/ApiStatusMonitor';
 import { calcularRutaOptima } from './services/routeService';
 
 function App() {
@@ -140,8 +141,9 @@ function App() {
             </div>
           </Col>
           
-          {/* Panel derecho - Información de la ruta */}
+          {/* Panel derecho - Información de la ruta y Monitor de APIs */}
           <Col md={3} className="info-col">
+            <ApiStatusMonitor />
             <RouteInfo 
               routeInfo={routeInfo}
               startPoint={startPoint}
